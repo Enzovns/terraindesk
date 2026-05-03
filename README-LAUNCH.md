@@ -18,6 +18,7 @@
 - `/api/workspace-action` handles authenticated lead and quote creation/deletion through the Supabase service role.
 - `/book.html?company=COMPANY_ID` is the public request form a landscaper can share with their own customers.
 - `/api/public-lead` takes public booking form submissions and creates new leads in the landscaper workspace.
+- Vercel Hobby limit safe: all API routes are consolidated into one Serverless Function at `/api/index.js`, with rewrites preserving the existing `/api/...` URLs.
 
 ## Client workspace workflows
 

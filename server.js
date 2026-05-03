@@ -315,7 +315,7 @@ async function handleStripeWebhook(req, res) {
 }
 
 async function handleApiFile(route, req, res) {
-  const handler = require(path.join(ROOT, route));
+  const handler = require(path.join(ROOT, "api/index.js"));
   return handler(req, res);
 }
 
