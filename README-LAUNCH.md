@@ -8,6 +8,19 @@
 - `/api/stripe-webhook` accepts Stripe `checkout.session.completed` events and emails the team.
 - `/client.html` is the post-payment onboarding page for customers who paid today.
 - `/api/client-intake` emails the paid customer onboarding brief through Resend.
+- `/api/config` exposes the public Supabase URL and anon key to the browser.
+- `/api/bootstrap-company` provisions a company/profile for a newly signed-in Supabase user.
+- `/api/update-company` updates company settings using the Supabase service role.
+
+## Required Supabase setup
+
+Supabase requires:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+The browser app uses `SUPABASE_ANON_KEY` with Row Level Security. Serverless API routes use `SUPABASE_SERVICE_ROLE_KEY` only for provisioning and company settings updates.
 
 ## Required Resend setup
 

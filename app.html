@@ -9,7 +9,27 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css">
 </head>
-<body>
+<body class="locked">
+  <section class="auth-screen" id="auth-screen">
+    <div class="auth-card">
+      <a class="app-brand" href="/">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5c6.8-.4 11-4.6 12.5-12.5 3.2 7.7.8 14.6-6.7 17.2C8.1 23.1 5.4 21 5 17.5Z"/><path d="M5.3 17.4C8.6 14.9 12 11.8 15.5 8"/></svg>
+        </span>
+        TerrainDesk
+      </a>
+      <p class="eyebrow">Client workspace</p>
+      <h1>Sign in to your operations cockpit.</h1>
+      <p>Use the email attached to your TerrainDesk subscription. New accounts are provisioned automatically for now.</p>
+      <form id="auth-form" class="auth-form">
+        <label>Email <input name="email" type="email" placeholder="owner@company.com.au" required></label>
+        <label>Password <input name="password" type="password" placeholder="Minimum 6 characters" required minlength="6"></label>
+        <button class="primary-btn" type="submit" data-auth-mode="signin">Sign in</button>
+        <button class="ghost-btn" type="button" id="signup-button">Create account</button>
+      </form>
+    </div>
+  </section>
+
   <aside class="app-sidebar">
     <a class="app-brand" href="/">
       <span class="brand-mark">
@@ -38,6 +58,7 @@
         <h1 id="view-title">Operations cockpit</h1>
       </div>
       <div class="topbar-actions">
+        <button class="ghost-btn" id="sign-out">Sign out</button>
         <button class="ghost-btn" data-seed>Reset demo data</button>
         <button class="primary-btn" data-action="new-lead">New lead</button>
       </div>
@@ -200,6 +221,7 @@
   </dialog>
 
   <div class="toast" id="app-toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app-dashboard.js"></script>
 </body>
 </html>
