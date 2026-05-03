@@ -53,6 +53,43 @@
   grid-column: 1 / -1;
 }
 
+.booking-form .primary-btn,
+.quote-actions .primary-btn {
+  min-height: 56px;
+  border: 0;
+  border-radius: 16px;
+  color: #fffefa;
+  background: linear-gradient(135deg, #274633, #3e7655);
+  box-shadow: 0 16px 36px rgba(39, 70, 51, 0.24);
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.booking-form .primary-btn:hover,
+.quote-actions .primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 44px rgba(39, 70, 51, 0.3);
+}
+
+.quote-total {
+  margin: 20px 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: clamp(2.6rem, 8vw, 5.2rem);
+  font-weight: 800;
+}
+
+.quote-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+
+.quote-actions button {
+  min-width: 150px;
+}
+
 @media (max-width: 700px) {
   .booking-form {
     grid-template-columns: 1fr;

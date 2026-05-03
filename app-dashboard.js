@@ -115,6 +115,7 @@ async function bootWorkspace() {
   await ensureProfile();
   await loadWorkspace();
   renderAll();
+  applyRoleAccess();
 }
 
 async function ensureProfile() {
@@ -236,6 +237,7 @@ function renderLeads() {
 function renderQuotes() {
   document.querySelector("#quotes-list").innerHTML = state.quotes.map((quote) => {
     const lead = leadById(quote.lead_id);
+    const canSchedule = quote.status === "Accepted" || quote.status === "Sent";
     return `
       <article class="card">
         <span>${escapeHtml(lead.name)} - ${escapeHtml(lead.suburb || "")}</span>
@@ -243,8 +245,8 @@ function renderQuotes() {
         <strong>${money(quote.amount)}</strong>
         <p>Margin ${escapeHtml(quote.margin || 0)}% - ${escapeHtml(quote.status)}</p>
         <div class="card-actions">
-          ${quote.status === "Sent" ? `<button class="mini-btn" data-accept-quote="${quote.id}">Accept quote</button>` : ""}
           <button class="mini-btn" data-email-quote="${quote.id}">Email quote</button>
+          ${canSchedule ? `<button class="mini-btn" data-schedule-quote="${quote.id}">${quote.status === "Accepted" ? "Schedule job" : "Record acceptance"}</button>` : ""}
           <button class="mini-btn danger-action" data-delete-quote="${quote.id}">Delete</button>
         </div>
       </article>
@@ -289,11 +291,19 @@ function renderSchedule() {
 function renderCrew() {
   document.querySelector("#crew-jobs").innerHTML = state.jobs.filter((job) => job.status !== "Complete").map((job) => `
     <article class="crew-job">
-      <span>${escapeHtml(job.day || "Tue")} - ${escapeHtml(job.crew || "North crew")}</span>
+      <div class="crew-job-head">
+        <span>${escapeHtml(job.day || "Mon")} - ${escapeHtml(job.crew || "North crew")}</span>
+        <strong>${escapeHtml(job.status)}</strong>
+      </div>
       <h3>${escapeHtml(job.service)}</h3>
       <p>${escapeHtml(leadById(job.lead_id).name)} - ${escapeHtml(leadById(job.lead_id).suburb || "")}</p>
-      ${(job.checklist || []).map((item) => `<label><input type="checkbox"> ${escapeHtml(item)}</label>`).join("")}
-      <button class="primary-btn" data-complete-job="${job.id}">Finish job</button>
+      <div class="crew-checklist">
+        ${(job.checklist || []).map((item) => `<label><input type="checkbox"> <span>${escapeHtml(item)}</span></label>`).join("")}
+      </div>
+      <div class="card-actions">
+        ${job.status === "Scheduled" ? `<button class="primary-btn" data-start-job="${job.id}">Start route</button>` : ""}
+        <button class="primary-btn" data-complete-job="${job.id}">Finish job</button>
+      </div>
     </article>
   `).join("") || `<p>No active route.</p>`;
 }
@@ -344,6 +354,17 @@ function renderAll() {
   renderCrew();
   renderInvoices();
   renderAutomations();
+}
+
+function applyRoleAccess() {
+  if (profile?.role !== "crew") return;
+  document.querySelectorAll(".app-nav button").forEach((button) => {
+    const allowed = ["crew", "schedule"].includes(button.dataset.view);
+    button.hidden = !allowed;
+  });
+  document.querySelector(".admin-link").hidden = true;
+  document.querySelector("[data-action='new-lead']").hidden = true;
+  switchView("crew");
 }
 
 function switchView(view) {
@@ -432,11 +453,60 @@ document.querySelector("#copy-booking-link").addEventListener("click", async () 
   showToast("Booking link copied.");
 });
 
+document.querySelector("#export-calendar").addEventListener("click", () => {
+  const dayIndex = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const events = state.jobs.map((job) => {
+    const lead = leadById(job.lead_id);
+    const date = nextWeekdayStamp(dayIndex[job.day] ?? 1);
+    return [
+      "BEGIN:VEVENT",
+      `UID:${job.id}@terraindesk`,
+      `DTSTAMP:${date}T080000Z`,
+      `DTSTART:${date}T080000Z`,
+      `DTEND:${date}T100000Z`,
+      `SUMMARY:${job.service}`,
+      `DESCRIPTION:${lead.name} - ${lead.suburb || ""} - ${job.crew || ""}`,
+      "END:VEVENT"
+    ].join("\r\n");
+  }).join("\r\n");
+  const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TerrainDesk//Schedule//EN\r\n${events}\r\nEND:VCALENDAR`;
+  downloadText("terraindesk-schedule.ics", ics, "text/calendar");
+});
+
+document.querySelector("#export-xero").addEventListener("click", () => {
+  const rows = [
+    ["ContactName", "EmailAddress", "InvoiceNumber", "Reference", "DueDate", "Description", "Quantity", "UnitAmount", "AccountCode", "TaxType"],
+    ...state.invoices.map((invoice) => {
+      const lead = leadById(invoice.lead_id);
+      return [lead.name, lead.email || "", String(invoice.id).slice(0, 8), "TerrainDesk", invoice.due || "", "Landscaping services", "1", invoice.amount || 0, "200", "OUTPUT"];
+    })
+  ];
+  downloadText("xero-invoices.csv", rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n"), "text/csv");
+});
+
+function downloadText(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function nextWeekdayStamp(targetDay) {
+  const date = new Date();
+  const diff = (targetDay - date.getDay() + 7) % 7 || 7;
+  date.setDate(date.getDate() + diff);
+  return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+}
+
 document.querySelectorAll("[data-action='new-lead']").forEach((button) => {
   button.addEventListener("click", () => document.querySelector("#lead-modal").showModal());
 });
 
 document.querySelector("[data-close-lead]").addEventListener("click", () => document.querySelector("#lead-modal").close());
+document.querySelector("[data-close-schedule]").addEventListener("click", () => document.querySelector("#schedule-modal").close());
 
 document.querySelector("#lead-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -457,6 +527,20 @@ document.querySelector("#quote-form").addEventListener("submit", async (event) =
     const amount = await createQuote(Object.fromEntries(new FormData(event.currentTarget)));
     await refresh();
     showToast(`Quote created for ${money(amount)} including GST.`);
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.querySelector("#schedule-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    await workspaceAction({ action: "scheduleQuote", ...Object.fromEntries(new FormData(form)) });
+    form.reset();
+    document.querySelector("#schedule-modal").close();
+    await refresh();
+    showToast("Job scheduled.");
   } catch (error) {
     showToast(error.message);
   }
@@ -492,59 +576,39 @@ document.addEventListener("click", async (event) => {
       showToast("Quote deleted.");
     }
 
-    if (target.dataset.acceptQuote) {
-      const quote = state.quotes.find((item) => item.id === target.dataset.acceptQuote);
-      if (!quote) return;
-      await supabaseClient.from("quotes").update({ status: "Accepted" }).eq("id", quote.id);
-      await supabaseClient.from("jobs").insert({
-        company_id: profile.company_id,
-        lead_id: quote.lead_id,
-        quote_id: quote.id,
-        service: quote.service,
-        amount: quote.amount,
-        crew: "North crew",
-        day: "Tue",
-        status: "Scheduled",
-        checklist: ["Confirm access", "Load materials", "Before photos", "Client sign-off"]
-      });
-      await refresh();
-      showToast("Quote accepted and job scheduled.");
+    if (target.dataset.scheduleQuote) {
+      const scheduleQuote = state.quotes.find((item) => item.id === target.dataset.scheduleQuote);
+      if (!scheduleQuote) return;
+      document.querySelector("#schedule-form [name='quoteId']").value = scheduleQuote.id;
+      document.querySelector("#schedule-modal").showModal();
     }
 
     if (target.dataset.startJob) {
-      await supabaseClient.from("jobs").update({ status: "In progress" }).eq("id", target.dataset.startJob);
+      await workspaceAction({ action: "updateJob", jobId: target.dataset.startJob, status: "In progress" });
       await refresh();
       showToast("Job started.");
     }
 
     if (target.dataset.blockJob) {
-      await supabaseClient.from("jobs").update({ status: "Blocked" }).eq("id", target.dataset.blockJob);
+      await workspaceAction({ action: "updateJob", jobId: target.dataset.blockJob, status: "Blocked" });
       await refresh();
       showToast("Job blocked.");
     }
 
     if (target.dataset.completeJob) {
-      await supabaseClient.from("jobs").update({ status: "Complete" }).eq("id", target.dataset.completeJob);
+      await workspaceAction({ action: "updateJob", jobId: target.dataset.completeJob, status: "Complete" });
       await refresh();
       showToast("Job completed. Ready to invoice.");
     }
 
     if (target.dataset.invoiceJob) {
-      const job = state.jobs.find((item) => item.id === target.dataset.invoiceJob);
-      if (!job) return;
-      await supabaseClient.from("invoices").insert({
-        company_id: profile.company_id,
-        lead_id: job.lead_id,
-        amount: job.amount,
-        due: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-        status: "Unpaid"
-      });
+      await workspaceAction({ action: "createInvoice", jobId: target.dataset.invoiceJob });
       await refresh();
       showToast("Invoice generated.");
     }
 
     if (target.dataset.payInvoice) {
-      await supabaseClient.from("invoices").update({ status: "Paid" }).eq("id", target.dataset.payInvoice);
+      await workspaceAction({ action: "updateInvoice", invoiceId: target.dataset.payInvoice, status: "Paid" });
       await refresh();
       showToast("Invoice marked paid.");
     }
@@ -554,6 +618,7 @@ document.addEventListener("click", async (event) => {
       if (!quote) return;
       await sendCustomerMessage({
         type: "quote",
+        quoteId: quote.id,
         leadId: quote.lead_id,
         service: quote.service,
         amount: quote.amount

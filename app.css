@@ -479,6 +479,38 @@ textarea {
   color: rgba(255, 255, 250, 0.7);
 }
 
+.crew-job-head,
+.crew-checklist label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.crew-job-head {
+  color: rgba(255, 255, 250, 0.72);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.crew-checklist {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.crew-checklist label {
+  justify-content: flex-start;
+  color: #fffefa;
+  line-height: 1.4;
+}
+
+.crew-checklist input {
+  width: 20px;
+  min-height: 20px;
+  flex: 0 0 20px;
+}
+
 .automation-rule {
   display: grid;
   grid-template-columns: 1fr auto;

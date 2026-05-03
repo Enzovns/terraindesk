@@ -367,6 +367,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/public-lead") {
       return await handleApiFile("api/public-lead.js", req, res);
     }
+    if ((req.method === "GET" || req.method === "POST") && url.pathname === "/api/public-quote") {
+      return await handleApiFile("api/index.js", req, res);
+    }
     if (req.method === "GET" && url.pathname === "/api/admin-customers") {
       return await handleApiFile("api/admin-customers.js", req, res);
     }

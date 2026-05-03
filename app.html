@@ -6,6 +6,7 @@
   <title>TerrainDesk App</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css">
 </head>
@@ -200,8 +201,8 @@
           <h2>Integrations</h2>
           <div class="integration-row"><span>Stripe</span><b>Active</b></div>
           <div class="integration-row"><span>Resend</span><b>Active</b></div>
-          <div class="integration-row muted"><span>Xero</span><b>Coming soon</b></div>
-          <div class="integration-row muted"><span>Google Calendar</span><b>Coming soon</b></div>
+          <div class="integration-row"><span>Xero</span><button class="mini-btn" id="export-xero">Export CSV</button></div>
+          <div class="integration-row"><span>Google Calendar</span><button class="mini-btn" id="export-calendar">Download ICS</button></div>
         </section>
         <section class="panel">
           <h2>Public booking link</h2>
@@ -227,8 +228,34 @@
     </form>
   </dialog>
 
+  <dialog id="schedule-modal" class="app-dialog">
+    <form id="schedule-form" method="dialog" class="dialog-card">
+      <button type="button" class="modal-close" data-close-schedule aria-label="Close">&times;</button>
+      <h2>Schedule accepted work</h2>
+      <input type="hidden" name="quoteId">
+      <label>Day
+        <select name="day">
+          <option>Mon</option>
+          <option>Tue</option>
+          <option>Wed</option>
+          <option>Thu</option>
+          <option>Fri</option>
+        </select>
+      </label>
+      <label>Crew
+        <select name="crew">
+          <option>North crew</option>
+          <option>South crew</option>
+          <option>Install crew</option>
+          <option>Maintenance crew</option>
+        </select>
+      </label>
+      <button class="primary-btn" type="submit">Schedule job</button>
+    </form>
+  </dialog>
+
   <div class="toast" id="app-toast" role="status" aria-live="polite"></div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app-dashboard.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="app-dashboard.js"></script>
 </body>
 </html>

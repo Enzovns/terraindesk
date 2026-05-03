@@ -398,6 +398,61 @@ async function handleWorkspaceAction(req, res) {
     await supabaseFetch(`/rest/v1/quotes?id=eq.${quote}&company_id=eq.${company}`, { method: "DELETE" });
     return sendJson(res, 200, { ok: true });
   }
+  if (body.action === "scheduleQuote") {
+    const quote = (await supabaseFetch(`/rest/v1/quotes?id=eq.${encodeURIComponent(body.quoteId)}&company_id=eq.${encodeURIComponent(profile.company_id)}&select=*`))[0];
+    if (!quote) return sendJson(res, 404, { ok: false, error: "Quote not found." });
+    if (quote.status !== "Accepted" && quote.status !== "Sent") {
+      return sendJson(res, 422, { ok: false, error: "Only sent or accepted quotes can be scheduled." });
+    }
+    await supabaseFetch(`/rest/v1/quotes?id=eq.${encodeURIComponent(quote.id)}&company_id=eq.${encodeURIComponent(profile.company_id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Scheduled" })
+    });
+    const job = (await supabaseFetch("/rest/v1/jobs", {
+      method: "POST",
+      body: JSON.stringify({
+        company_id: profile.company_id,
+        lead_id: quote.lead_id,
+        quote_id: quote.id,
+        service: quote.service,
+        amount: quote.amount,
+        crew: body.crew || "North crew",
+        day: body.day || "Mon",
+        status: "Scheduled",
+        checklist: ["Confirm access", "Load materials", "Before photos", "Client sign-off"]
+      })
+    }))[0];
+    return sendJson(res, 200, { ok: true, job });
+  }
+  if (body.action === "updateJob") {
+    const job = (await supabaseFetch(`/rest/v1/jobs?id=eq.${encodeURIComponent(body.jobId)}&company_id=eq.${encodeURIComponent(profile.company_id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: body.status })
+    }))[0];
+    return sendJson(res, 200, { ok: true, job });
+  }
+  if (body.action === "createInvoice") {
+    const job = (await supabaseFetch(`/rest/v1/jobs?id=eq.${encodeURIComponent(body.jobId)}&company_id=eq.${encodeURIComponent(profile.company_id)}&select=*`))[0];
+    if (!job) return sendJson(res, 404, { ok: false, error: "Job not found." });
+    const invoice = (await supabaseFetch("/rest/v1/invoices", {
+      method: "POST",
+      body: JSON.stringify({
+        company_id: profile.company_id,
+        lead_id: job.lead_id,
+        amount: job.amount,
+        due: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+        status: "Unpaid"
+      })
+    }))[0];
+    return sendJson(res, 200, { ok: true, invoice });
+  }
+  if (body.action === "updateInvoice") {
+    const invoice = (await supabaseFetch(`/rest/v1/invoices?id=eq.${encodeURIComponent(body.invoiceId)}&company_id=eq.${encodeURIComponent(profile.company_id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: body.status })
+    }))[0];
+    return sendJson(res, 200, { ok: true, invoice });
+  }
   return sendJson(res, 422, { ok: false, error: "Unknown workspace action." });
 }
 
@@ -419,13 +474,36 @@ async function handleCustomerMessage(req, res) {
   const company = (await supabaseFetch(`/rest/v1/companies?id=eq.${encodeURIComponent(profile.company_id)}&select=*`))[0] || {};
   if (!lead?.email) return sendJson(res, 422, { ok: false, error: "This client does not have an email address." });
   const subject = body.type === "quote" ? `${company.name || "TerrainDesk"} quote - ${body.service}` : body.type === "reminder" ? `Reminder from ${company.name || "TerrainDesk"}` : `${company.name || "TerrainDesk"} invoice - ${money(body.amount)}`;
+  const quoteLink = `${getOrigin(req)}/quote.html?quote=${encodeURIComponent(body.quoteId || "")}`;
   const html = body.type === "quote"
-    ? `<h1>Your landscaping quote</h1><p>Hi ${escapeHtml(lead.name)}, your quote for ${escapeHtml(body.service)} is <strong>${escapeHtml(money(body.amount))}</strong> inc. GST.</p>`
+    ? `<h1>Your landscaping quote</h1><p>Hi ${escapeHtml(lead.name)}, your quote for ${escapeHtml(body.service)} is <strong>${escapeHtml(money(body.amount))}</strong> inc. GST.</p><p><a href="${escapeHtml(quoteLink)}">Review, accept or decline this quote</a></p>`
     : body.type === "reminder"
       ? `<h1>Quick reminder</h1><p>Hi ${escapeHtml(lead.name)}, friendly reminder about your outstanding invoice for <strong>${escapeHtml(money(body.amount))}</strong>.</p>`
       : `<h1>Your invoice</h1><p>Hi ${escapeHtml(lead.name)}, your invoice is <strong>${escapeHtml(money(body.amount))}</strong>. Due ${escapeHtml(body.due || "soon")}.</p>`;
   const result = await sendResendEmail({ to: lead.email, replyTo: profile.email, subject, html, text: subject });
   return sendJson(res, 200, { ok: true, id: result.id });
+}
+
+async function handlePublicQuote(req, res) {
+  const url = new URL(req.url, `https://${req.headers.host || "localhost"}`);
+  const body = req.method === "POST" ? await readJson(req) : {};
+  const quoteId = url.searchParams.get("quote") || body.quoteId || "";
+  if (!quoteId) return sendJson(res, 422, { ok: false, error: "quote is required." });
+
+  const quote = (await supabaseFetch(`/rest/v1/quotes?id=eq.${encodeURIComponent(quoteId)}&select=*`))[0];
+  if (!quote) return sendJson(res, 404, { ok: false, error: "Quote not found." });
+  const lead = (await supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(quote.lead_id)}&select=*`))[0] || {};
+  const company = (await supabaseFetch(`/rest/v1/companies?id=eq.${encodeURIComponent(quote.company_id)}&select=*`))[0] || {};
+
+  if (req.method === "GET") return sendJson(res, 200, { ok: true, quote, lead, company });
+  if (req.method !== "POST") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
+
+  const nextStatus = body.decision === "decline" ? "Declined" : "Accepted";
+  const updated = (await supabaseFetch(`/rest/v1/quotes?id=eq.${encodeURIComponent(quote.id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: nextStatus })
+  }))[0];
+  return sendJson(res, 200, { ok: true, quote: updated, decision: nextStatus });
 }
 
 const routes = {
@@ -442,7 +520,8 @@ const routes = {
   "send-workspace-link": handleSendWorkspaceLink,
   "workspace-action": handleWorkspaceAction,
   "public-lead": handlePublicLead,
-  "customer-message": handleCustomerMessage
+  "customer-message": handleCustomerMessage,
+  "public-quote": handlePublicQuote
 };
 
 module.exports = async function handler(req, res) {
