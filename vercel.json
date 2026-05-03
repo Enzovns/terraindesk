@@ -11,6 +11,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/b", "destination": "/book.html" },
     { "source": "/api/:path*", "destination": "/api/index?path=:path*" }
   ]
 }

@@ -1,7 +1,7 @@
 const form = document.querySelector("#booking-form");
 const statusEl = document.querySelector("#booking-status");
 const params = new URLSearchParams(window.location.search);
-const companyId = params.get("company");
+const companyId = params.get("company") || params.get("c");
 
 if (!companyId) {
   form.querySelector("button").disabled = true;

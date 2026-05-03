@@ -53,6 +53,11 @@ function leadById(id) {
   return state.leads.find((lead) => lead.id === id) || { name: "Unknown client", suburb: "Unknown" };
 }
 
+function employeesList() {
+  const employees = state.automations.employees;
+  return Array.isArray(employees) && employees.length ? employees : ["Owner", "North employee", "South employee"];
+}
+
 async function getConfig() {
   const response = await fetch("/api/config");
   const result = await response.json();
@@ -178,7 +183,7 @@ async function refresh() {
 function renderMetrics() {
   const revenue = state.invoices.filter((invoice) => invoice.status === "Paid").reduce((sum, invoice) => sum + Number(invoice.amount), 0);
   const waitingQuotes = state.quotes.filter((quote) => quote.status === "Sent").length;
-  const scheduledJobs = state.jobs.filter((job) => job.status !== "Complete").length;
+  const scheduledJobs = state.jobs.filter((job) => !["Complete", "Proposed"].includes(job.status)).length;
   const overdue = state.invoices.filter((invoice) => invoice.status === "Overdue").length;
   document.querySelector("#metric-revenue").textContent = money(revenue);
   document.querySelector("#metric-quotes").textContent = waitingQuotes;
@@ -237,16 +242,17 @@ function renderLeads() {
 function renderQuotes() {
   document.querySelector("#quotes-list").innerHTML = state.quotes.map((quote) => {
     const lead = leadById(quote.lead_id);
-    const canSchedule = quote.status === "Accepted" || quote.status === "Sent";
+    const canSchedule = quote.status === "Accepted";
+    const proposed = state.jobs.find((job) => job.quote_id === quote.id && ["Proposed", "Scheduled"].includes(job.status));
     return `
       <article class="card">
         <span>${escapeHtml(lead.name)} - ${escapeHtml(lead.suburb || "")}</span>
         <h3>${escapeHtml(quote.service)}</h3>
         <strong>${money(quote.amount)}</strong>
-        <p>Margin ${escapeHtml(quote.margin || 0)}% - ${escapeHtml(quote.status)}</p>
+        <p>${proposed ? `Proposed ${escapeHtml(proposed.day || "Mon")} - ${escapeHtml(proposed.crew || "Unassigned")}` : "No appointment proposed"} - ${escapeHtml(quote.status)}</p>
         <div class="card-actions">
           <button class="mini-btn" data-email-quote="${quote.id}">Email quote</button>
-          ${canSchedule ? `<button class="mini-btn" data-schedule-quote="${quote.id}">${quote.status === "Accepted" ? "Schedule job" : "Record acceptance"}</button>` : ""}
+          ${canSchedule ? `<button class="mini-btn" data-schedule-quote="${quote.id}">Adjust job</button>` : ""}
           <button class="mini-btn danger-action" data-delete-quote="${quote.id}">Delete</button>
         </div>
       </article>
@@ -264,7 +270,7 @@ function renderJobs() {
         return `
           <article class="job-card">
             <strong>${escapeHtml(job.service)}</strong>
-            <p>${escapeHtml(lead.name)} - ${escapeHtml(lead.suburb || "")}<br>${escapeHtml(job.crew || "North crew")} - ${escapeHtml(job.day || "Tue")}</p>
+            <p>${escapeHtml(lead.name)} - ${escapeHtml(lead.suburb || "")}<br>${escapeHtml(job.crew || "Unassigned")} - ${escapeHtml(job.day || "Mon")}</p>
             <div class="card-actions">
               ${job.status === "Scheduled" ? `<button class="mini-btn" data-start-job="${job.id}">Start</button>` : ""}
               ${job.status === "In progress" ? `<button class="mini-btn" data-complete-job="${job.id}">Complete</button>` : ""}
@@ -283,16 +289,16 @@ function renderSchedule() {
   document.querySelector("#schedule-grid").innerHTML = days.map((day) => `
     <section class="schedule-day">
       <h3>${day}</h3>
-      ${state.jobs.filter((job) => job.day === day).map((job) => `<div class="job-card"><strong>${escapeHtml(job.service)}</strong><p>${escapeHtml(leadById(job.lead_id).suburb || "")}<br>${escapeHtml(job.crew || "")}</p></div>`).join("") || `<p class="empty-state">Open capacity.</p>`}
+      ${state.jobs.filter((job) => job.day === day && job.status !== "Proposed").map((job) => `<div class="job-card"><strong>${escapeHtml(job.service)}</strong><p>${escapeHtml(leadById(job.lead_id).suburb || "")}<br>${escapeHtml(job.crew || "")}</p></div>`).join("") || `<p class="empty-state">Open capacity.</p>`}
     </section>
   `).join("");
 }
 
 function renderCrew() {
-  document.querySelector("#crew-jobs").innerHTML = state.jobs.filter((job) => job.status !== "Complete").map((job) => `
+  document.querySelector("#crew-jobs").innerHTML = state.jobs.filter((job) => !["Complete", "Proposed", "Blocked"].includes(job.status)).map((job) => `
     <article class="crew-job">
       <div class="crew-job-head">
-        <span>${escapeHtml(job.day || "Mon")} - ${escapeHtml(job.crew || "North crew")}</span>
+        <span>${escapeHtml(job.day || "Mon")} - ${escapeHtml(job.crew || "Unassigned")}</span>
         <strong>${escapeHtml(job.status)}</strong>
       </div>
       <h3>${escapeHtml(job.service)}</h3>
@@ -339,8 +345,27 @@ function renderCompany() {
   document.querySelector("#company-form [name='abn']").value = company?.abn || "";
   const bookingInput = document.querySelector("#booking-link");
   if (bookingInput && company?.id) {
-    bookingInput.value = `${window.location.origin}/book.html?company=${company.id}`;
+    bookingInput.value = `${window.location.origin}/b?c=${company.id}`;
   }
+  const employeesInput = document.querySelector("#employees-form [name='employees']");
+  if (employeesInput) employeesInput.value = employeesList().join("\n");
+  renderEmployeeChoices();
+}
+
+function renderEmployeeChoices() {
+  const options = employeesList().map((employee) => `<option value="${escapeHtml(employee)}">${escapeHtml(employee)}</option>`).join("");
+  const quoteEmployees = document.querySelector("#quote-employees");
+  const scheduleEmployees = document.querySelector("#schedule-employees");
+  if (quoteEmployees) quoteEmployees.innerHTML = options;
+  if (scheduleEmployees) scheduleEmployees.innerHTML = options;
+}
+
+function formPayload(form) {
+  const payload = Object.fromEntries(new FormData(form));
+  form.querySelectorAll("select[multiple]").forEach((select) => {
+    payload[select.name] = Array.from(select.selectedOptions).map((option) => option.value).join(", ");
+  });
+  return payload;
 }
 
 function renderAll() {
@@ -453,6 +478,19 @@ document.querySelector("#copy-booking-link").addEventListener("click", async () 
   showToast("Booking link copied.");
 });
 
+document.querySelector("#employees-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const payload = formPayload(event.currentTarget);
+    const result = await workspaceAction({ action: "saveEmployees", ...payload });
+    state.automations.employees = result.employees;
+    renderCompany();
+    showToast("Employees saved.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
 document.querySelector("#export-calendar").addEventListener("click", () => {
   const dayIndex = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   const events = state.jobs.map((job) => {
@@ -524,7 +562,7 @@ document.querySelector("#lead-form").addEventListener("submit", async (event) =>
 document.querySelector("#quote-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    const amount = await createQuote(Object.fromEntries(new FormData(event.currentTarget)));
+    const amount = await createQuote(formPayload(event.currentTarget));
     await refresh();
     showToast(`Quote created for ${money(amount)} including GST.`);
   } catch (error) {
@@ -536,7 +574,7 @@ document.querySelector("#schedule-form").addEventListener("submit", async (event
   event.preventDefault();
   const form = event.currentTarget;
   try {
-    await workspaceAction({ action: "scheduleQuote", ...Object.fromEntries(new FormData(form)) });
+    await workspaceAction({ action: "scheduleQuote", ...formPayload(form) });
     form.reset();
     document.querySelector("#schedule-modal").close();
     await refresh();

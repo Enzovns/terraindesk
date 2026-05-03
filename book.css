@@ -86,12 +86,38 @@
   margin-top: 24px;
 }
 
+.quote-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.quote-detail-grid article {
+  padding: 16px;
+  border: 1px solid rgba(23, 32, 27, 0.13);
+  border-radius: 16px;
+  background: #f8f5ed;
+}
+
+.quote-detail-grid span {
+  display: block;
+  color: #647067;
+  font-size: 0.86rem;
+}
+
+.quote-detail-grid strong {
+  display: block;
+  margin-top: 8px;
+}
+
 .quote-actions button {
   min-width: 150px;
 }
 
 @media (max-width: 700px) {
-  .booking-form {
+  .booking-form,
+  .quote-detail-grid {
     grid-template-columns: 1fr;
   }
 }

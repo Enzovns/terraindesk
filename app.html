@@ -45,12 +45,12 @@
       <button data-view="quotes">Quotes</button>
       <button data-view="jobs">Jobs</button>
       <button data-view="schedule">Schedule</button>
-      <button data-view="crew">Crew mobile</button>
+      <button data-view="crew">Employee mobile</button>
       <button data-view="invoices">Invoices</button>
       <button data-view="automations">Automations</button>
       <button data-view="settings">Settings</button>
     </nav>
-    <a class="admin-link" href="admin.html">Admin panel</a>
+    <a class="admin-link subtle-admin-link" href="admin.html">Founder</a>
   </aside>
 
   <main class="app-main">
@@ -119,7 +119,7 @@
       <div class="quote-builder panel">
         <div>
           <h2>Quote builder</h2>
-          <p>Create GST-aware AUD quotes and convert accepted work into scheduled jobs.</p>
+          <p>Create GST-aware AUD quotes, propose an appointment, and let the customer accept both.</p>
         </div>
         <form id="quote-form" class="form-grid">
           <label>Client <select name="leadId" id="quote-lead"></select></label>
@@ -128,6 +128,8 @@
           <label>Hourly rate <input name="rate" type="number" min="1" value="85"></label>
           <label>Materials <input name="materials" type="number" min="0" value="420"></label>
           <label>Markup % <input name="markup" type="number" min="0" value="28"></label>
+          <label>Proposed day <select name="day"><option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option><option>Fri</option></select></label>
+          <label>Employees <select name="employees" id="quote-employees" multiple></select></label>
           <button class="primary-btn" type="submit">Create quote</button>
         </form>
       </div>
@@ -147,7 +149,7 @@
     <section class="view" id="schedule-view">
       <div class="section-bar">
         <div>
-          <p class="eyebrow">Crew planning</p>
+          <p class="eyebrow">Employee planning</p>
           <h2>Schedule</h2>
         </div>
       </div>
@@ -198,6 +200,13 @@
           <button class="primary-btn" type="submit">Save settings</button>
         </form>
         <section class="panel">
+          <h2>Employees</h2>
+          <form id="employees-form" class="settings-form">
+            <label>One employee per line <textarea name="employees" placeholder="Alex&#10;Jordan&#10;Sam"></textarea></label>
+            <button class="primary-btn" type="submit">Save employees</button>
+          </form>
+        </section>
+        <section class="panel">
           <h2>Integrations</h2>
           <div class="integration-row"><span>Stripe</span><b>Active</b></div>
           <div class="integration-row"><span>Resend</span><b>Active</b></div>
@@ -242,12 +251,9 @@
           <option>Fri</option>
         </select>
       </label>
-      <label>Crew
-        <select name="crew">
-          <option>North crew</option>
-          <option>South crew</option>
-          <option>Install crew</option>
-          <option>Maintenance crew</option>
+      <label>Employees
+        <select name="employees" id="schedule-employees" multiple>
+          <option>Owner</option>
         </select>
       </label>
       <button class="primary-btn" type="submit">Schedule job</button>

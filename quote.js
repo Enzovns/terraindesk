@@ -6,6 +6,9 @@ const copy = document.querySelector("#quote-copy");
 const statusEl = document.querySelector("#quote-status");
 const acceptButton = document.querySelector("#accept-quote");
 const declineButton = document.querySelector("#decline-quote");
+const dayEl = document.querySelector("#quote-day");
+const employeesEl = document.querySelector("#quote-employees");
+const companyEl = document.querySelector("#quote-company");
 
 function money(value) {
   return new Intl.NumberFormat("en-AU", {
@@ -22,10 +25,16 @@ async function loadQuote() {
   if (!response.ok) throw new Error(result.error || "Could not load quote.");
   title.textContent = result.quote.service;
   total.textContent = money(result.quote.amount);
-  copy.textContent = `${result.company.name || "The landscaping team"} sent this quote to ${result.lead.name || "you"}. Current status: ${result.quote.status}.`;
+  const companyName = result.company.name || "The landscaping team";
+  const proposed = result.proposedJob || {};
+  copy.textContent = `${companyName} sent this quote to ${result.lead.name || "you"}. Accepting confirms both the price and the proposed appointment.`;
+  dayEl.textContent = proposed.day || "To be confirmed";
+  employeesEl.textContent = proposed.crew || "To be assigned";
+  companyEl.textContent = companyName;
   const closed = ["Accepted", "Declined", "Scheduled"].includes(result.quote.status);
   acceptButton.disabled = closed;
   declineButton.disabled = closed;
+  statusEl.textContent = closed ? `Current status: ${result.quote.status}.` : "Please accept or decline below.";
 }
 
 async function decide(decision) {
@@ -39,7 +48,7 @@ async function decide(decision) {
   if (!response.ok) throw new Error(result.error || "Could not update quote.");
   statusEl.textContent = decision === "decline"
     ? "Quote declined. The landscaping team can follow up if needed."
-    : "Quote accepted. The landscaping team will schedule the job next.";
+    : "Quote accepted. The appointment is now confirmed with the landscaping team.";
   await loadQuote();
 }
 

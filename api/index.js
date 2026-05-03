@@ -375,6 +375,20 @@ async function handleWorkspaceAction(req, res) {
   if (body.action === "createQuote") {
     const amount = Math.round((Number(body.hours || 1) * Number(body.rate || 85) + Number(body.materials || 0)) * (1 + Number(body.markup || 25) / 100) * 1.1);
     const quote = (await supabaseFetch("/rest/v1/quotes", { method: "POST", body: JSON.stringify({ company_id: profile.company_id, lead_id: body.leadId, service: body.service || "Garden maintenance", amount, status: "Sent" }) }))[0];
+    await supabaseFetch("/rest/v1/jobs", {
+      method: "POST",
+      body: JSON.stringify({
+        company_id: profile.company_id,
+        lead_id: body.leadId,
+        quote_id: quote.id,
+        service: quote.service,
+        amount,
+        crew: body.employees || body.crew || "Unassigned",
+        day: body.day || "Mon",
+        status: "Proposed",
+        checklist: ["Confirm access", "Load materials", "Before photos", "Client sign-off"]
+      })
+    });
     await supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(body.leadId)}&company_id=eq.${encodeURIComponent(profile.company_id)}`, { method: "PATCH", body: JSON.stringify({ status: "Quoted" }) });
     return sendJson(res, 200, { ok: true, quote, amount });
   }
@@ -408,21 +422,38 @@ async function handleWorkspaceAction(req, res) {
       method: "PATCH",
       body: JSON.stringify({ status: "Scheduled" })
     });
-    const job = (await supabaseFetch("/rest/v1/jobs", {
-      method: "POST",
-      body: JSON.stringify({
-        company_id: profile.company_id,
-        lead_id: quote.lead_id,
-        quote_id: quote.id,
-        service: quote.service,
-        amount: quote.amount,
-        crew: body.crew || "North crew",
-        day: body.day || "Mon",
-        status: "Scheduled",
-        checklist: ["Confirm access", "Load materials", "Before photos", "Client sign-off"]
-      })
-    }))[0];
+    const proposed = await supabaseFetch(`/rest/v1/jobs?quote_id=eq.${encodeURIComponent(quote.id)}&company_id=eq.${encodeURIComponent(profile.company_id)}&status=eq.Proposed&select=*`);
+    const job = proposed.length
+      ? (await supabaseFetch(`/rest/v1/jobs?id=eq.${encodeURIComponent(proposed[0].id)}&company_id=eq.${encodeURIComponent(profile.company_id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "Scheduled", crew: body.employees || body.crew || proposed[0].crew, day: body.day || proposed[0].day || "Mon" })
+      }))[0]
+      : (await supabaseFetch("/rest/v1/jobs", {
+        method: "POST",
+        body: JSON.stringify({
+          company_id: profile.company_id,
+          lead_id: quote.lead_id,
+          quote_id: quote.id,
+          service: quote.service,
+          amount: quote.amount,
+          crew: body.employees || body.crew || "Unassigned",
+          day: body.day || "Mon",
+          status: "Scheduled",
+          checklist: ["Confirm access", "Load materials", "Before photos", "Client sign-off"]
+        })
+      }))[0];
     return sendJson(res, 200, { ok: true, job });
+  }
+  if (body.action === "saveEmployees") {
+    const existing = await supabaseFetch(`/rest/v1/automation_settings?company_id=eq.${encodeURIComponent(profile.company_id)}&select=*`);
+    const current = existing[0]?.settings || {};
+    const employees = String(body.employees || "").split(/\r?\n|,/).map((name) => name.trim()).filter(Boolean);
+    await supabaseFetch("/rest/v1/automation_settings", {
+      method: "POST",
+      headers: { prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify({ company_id: profile.company_id, settings: { ...current, employees } })
+    });
+    return sendJson(res, 200, { ok: true, employees });
   }
   if (body.action === "updateJob") {
     const job = (await supabaseFetch(`/rest/v1/jobs?id=eq.${encodeURIComponent(body.jobId)}&company_id=eq.${encodeURIComponent(profile.company_id)}`, {
@@ -494,8 +525,9 @@ async function handlePublicQuote(req, res) {
   if (!quote) return sendJson(res, 404, { ok: false, error: "Quote not found." });
   const lead = (await supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(quote.lead_id)}&select=*`))[0] || {};
   const company = (await supabaseFetch(`/rest/v1/companies?id=eq.${encodeURIComponent(quote.company_id)}&select=*`))[0] || {};
+  const proposedJob = (await supabaseFetch(`/rest/v1/jobs?quote_id=eq.${encodeURIComponent(quote.id)}&select=*`))[0] || null;
 
-  if (req.method === "GET") return sendJson(res, 200, { ok: true, quote, lead, company });
+  if (req.method === "GET") return sendJson(res, 200, { ok: true, quote, lead, company, proposedJob });
   if (req.method !== "POST") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
 
   const nextStatus = body.decision === "decline" ? "Declined" : "Accepted";
@@ -503,6 +535,14 @@ async function handlePublicQuote(req, res) {
     method: "PATCH",
     body: JSON.stringify({ status: nextStatus })
   }))[0];
+  if (body.decision === "decline") {
+    await supabaseFetch(`/rest/v1/jobs?quote_id=eq.${encodeURIComponent(quote.id)}&status=eq.Proposed`, { method: "DELETE" });
+  } else {
+    await supabaseFetch(`/rest/v1/jobs?quote_id=eq.${encodeURIComponent(quote.id)}&status=eq.Proposed`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Scheduled" })
+    });
+  }
   return sendJson(res, 200, { ok: true, quote: updated, decision: nextStatus });
 }
 

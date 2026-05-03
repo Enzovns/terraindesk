@@ -145,6 +145,12 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1
   background: var(--ink);
 }
 
+.subtle-admin-link {
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+}
+
 .app-main {
   margin-left: 252px;
   padding: 28px;
@@ -555,6 +561,10 @@ textarea {
 .settings-grid form {
   display: grid;
   gap: 14px;
+}
+
+.settings-form textarea {
+  min-height: 150px;
 }
 
 .integration-row {
