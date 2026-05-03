@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerrainDesk Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <aside class="app-sidebar">
+    <a class="app-brand" href="/">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5c6.8-.4 11-4.6 12.5-12.5 3.2 7.7.8 14.6-6.7 17.2C8.1 23.1 5.4 21 5 17.5Z"/><path d="M5.3 17.4C8.6 14.9 12 11.8 15.5 8"/></svg>
+      </span>
+      TerrainDesk
+    </a>
+    <nav class="app-nav" aria-label="Admin navigation">
+      <button class="active" data-view="admin-dashboard">Overview</button>
+      <button data-view="admin-customers">Customers</button>
+      <button data-view="admin-onboarding">Onboarding</button>
+      <button data-view="admin-revenue">Revenue</button>
+    </nav>
+    <a class="admin-link" href="app.html">Open client app</a>
+  </aside>
+
+  <main class="app-main">
+    <header class="app-topbar">
+      <div>
+        <p class="eyebrow">Founder command center</p>
+        <h1 id="view-title">Admin overview</h1>
+      </div>
+      <button class="primary-btn" id="add-customer">Add customer</button>
+    </header>
+
+    <section class="view active" id="admin-dashboard-view">
+      <div class="metric-grid">
+        <article><span>MRR</span><strong id="admin-mrr">A$0</strong></article>
+        <article><span>Active customers</span><strong id="admin-active">0</strong></article>
+        <article><span>Onboarding</span><strong id="admin-onboarding-count">0</strong></article>
+        <article><span>At risk</span><strong id="admin-risk">0</strong></article>
+      </div>
+      <section class="panel">
+        <h2>Founder queue</h2>
+        <div class="action-list" id="founder-queue"></div>
+      </section>
+    </section>
+
+    <section class="view" id="admin-customers-view">
+      <div class="table-panel">
+        <table>
+          <thead><tr><th>Company</th><th>Plan</th><th>Status</th><th>Owner</th><th>MRR</th><th></th></tr></thead>
+          <tbody id="customers-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="admin-onboarding-view">
+      <div class="kanban" id="onboarding-board"></div>
+    </section>
+
+    <section class="view" id="admin-revenue-view">
+      <div class="dashboard-grid">
+        <section class="panel wide">
+          <h2>Revenue forecast</h2>
+          <div class="action-list" id="revenue-list"></div>
+        </section>
+        <section class="panel">
+          <h2>Plan mix</h2>
+          <div class="weather-card">
+            <span>Most common</span>
+            <strong>Operations</strong>
+            <p>Keep demos focused on scheduling, quote turnaround and invoice recovery.</p>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="customer-modal" class="app-dialog">
+    <form id="customer-form" method="dialog" class="dialog-card">
+      <button type="button" class="modal-close" data-close-customer aria-label="Close">×</button>
+      <h2>Add customer</h2>
+      <label>Company <input name="company" required></label>
+      <label>Owner email <input name="email" type="email" required></label>
+      <label>Plan <select name="plan"><option>Essential</option><option>Operations</option><option>Multi-crew</option></select></label>
+      <label>Status <select name="status"><option>Onboarding</option><option>Active</option><option>At risk</option></select></label>
+      <button class="primary-btn" type="submit">Create customer</button>
+    </form>
+  </dialog>
+
+  <div class="toast" id="app-toast" role="status" aria-live="polite"></div>
+  <script src="admin.js"></script>
+</body>
+</html>

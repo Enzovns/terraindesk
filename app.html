@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerrainDesk App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <aside class="app-sidebar">
+    <a class="app-brand" href="/">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5c6.8-.4 11-4.6 12.5-12.5 3.2 7.7.8 14.6-6.7 17.2C8.1 23.1 5.4 21 5 17.5Z"/><path d="M5.3 17.4C8.6 14.9 12 11.8 15.5 8"/></svg>
+      </span>
+      TerrainDesk
+    </a>
+    <nav class="app-nav" aria-label="Workspace navigation">
+      <button class="active" data-view="dashboard">Dashboard</button>
+      <button data-view="leads">Leads</button>
+      <button data-view="quotes">Quotes</button>
+      <button data-view="jobs">Jobs</button>
+      <button data-view="schedule">Schedule</button>
+      <button data-view="crew">Crew mobile</button>
+      <button data-view="invoices">Invoices</button>
+      <button data-view="automations">Automations</button>
+      <button data-view="settings">Settings</button>
+    </nav>
+    <a class="admin-link" href="admin.html">Admin panel</a>
+  </aside>
+
+  <main class="app-main">
+    <header class="app-topbar">
+      <div>
+        <p class="eyebrow">Green Ridge Landscapes</p>
+        <h1 id="view-title">Operations cockpit</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost-btn" data-seed>Reset demo data</button>
+        <button class="primary-btn" data-action="new-lead">New lead</button>
+      </div>
+    </header>
+
+    <section class="view active" id="dashboard-view">
+      <div class="metric-grid">
+        <article><span>Today revenue</span><strong id="metric-revenue">A$0</strong></article>
+        <article><span>Quotes waiting</span><strong id="metric-quotes">0</strong></article>
+        <article><span>Jobs scheduled</span><strong id="metric-jobs">0</strong></article>
+        <article><span>Overdue invoices</span><strong id="metric-overdue">0</strong></article>
+      </div>
+      <div class="dashboard-grid">
+        <section class="panel wide">
+          <div class="panel-headline">
+            <h2>What needs action today</h2>
+            <button class="ghost-btn" data-action="new-quote">Build quote</button>
+          </div>
+          <div class="action-list" id="action-list"></div>
+        </section>
+        <section class="panel">
+          <h2>Weather risk</h2>
+          <div class="weather-card">
+            <span>Perth metro</span>
+            <strong>31°C</strong>
+            <p>Wind rising after 14:00. Move irrigation testing earlier.</p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="view" id="leads-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">CRM</p>
+          <h2>Leads</h2>
+        </div>
+        <button class="primary-btn" data-action="new-lead">Add lead</button>
+      </div>
+      <div class="table-panel">
+        <table>
+          <thead><tr><th>Client</th><th>Suburb</th><th>Service</th><th>Urgency</th><th>Status</th><th></th></tr></thead>
+          <tbody id="leads-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="quotes-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Sales</p>
+          <h2>Quotes</h2>
+        </div>
+        <button class="primary-btn" data-action="new-quote">New quote</button>
+      </div>
+      <div class="quote-builder panel">
+        <div>
+          <h2>Quote builder</h2>
+          <p>Create GST-aware AUD quotes and convert accepted work into scheduled jobs.</p>
+        </div>
+        <form id="quote-form" class="form-grid">
+          <label>Client <select name="leadId" id="quote-lead"></select></label>
+          <label>Service <input name="service" value="Garden cleanup and mulch install"></label>
+          <label>Labour hours <input name="hours" type="number" min="1" value="8"></label>
+          <label>Hourly rate <input name="rate" type="number" min="1" value="85"></label>
+          <label>Materials <input name="materials" type="number" min="0" value="420"></label>
+          <label>Markup % <input name="markup" type="number" min="0" value="28"></label>
+          <button class="primary-btn" type="submit">Create quote</button>
+        </form>
+      </div>
+      <div class="card-grid" id="quotes-list"></div>
+    </section>
+
+    <section class="view" id="jobs-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Production</p>
+          <h2>Jobs</h2>
+        </div>
+      </div>
+      <div class="kanban" id="jobs-board"></div>
+    </section>
+
+    <section class="view" id="schedule-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Crew planning</p>
+          <h2>Schedule</h2>
+        </div>
+      </div>
+      <div class="schedule-grid" id="schedule-grid"></div>
+    </section>
+
+    <section class="view" id="crew-view">
+      <div class="crew-phone">
+        <div class="device-top"></div>
+        <h2>Today’s route</h2>
+        <div id="crew-jobs"></div>
+      </div>
+    </section>
+
+    <section class="view" id="invoices-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Finance</p>
+          <h2>Invoices</h2>
+        </div>
+      </div>
+      <div class="table-panel">
+        <table>
+          <thead><tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <tbody id="invoices-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="automations-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Automation settings</p>
+          <h2>Rules</h2>
+        </div>
+      </div>
+      <div class="automation-list" id="automation-list"></div>
+    </section>
+
+    <section class="view" id="settings-view">
+      <div class="settings-grid">
+        <form class="panel" id="company-form">
+          <h2>Company settings</h2>
+          <label>Company name <input name="name" value="Green Ridge Landscapes"></label>
+          <label>ABN <input name="abn" value="53 004 085 616"></label>
+          <label>Default hourly rate <input name="hourlyRate" type="number" value="85"></label>
+          <label>GST <select name="gst"><option>GST included</option><option>GST excluded</option></select></label>
+          <button class="primary-btn" type="submit">Save settings</button>
+        </form>
+        <section class="panel">
+          <h2>Integrations</h2>
+          <div class="integration-row"><span>Stripe</span><b>Active</b></div>
+          <div class="integration-row"><span>Resend</span><b>Active</b></div>
+          <div class="integration-row muted"><span>Xero</span><b>Coming soon</b></div>
+          <div class="integration-row muted"><span>Google Calendar</span><b>Coming soon</b></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="lead-modal" class="app-dialog">
+    <form id="lead-form" method="dialog" class="dialog-card">
+      <button type="button" class="modal-close" data-close-lead aria-label="Close">×</button>
+      <h2>New lead</h2>
+      <label>Client name <input name="name" required></label>
+      <label>Email <input name="email" type="email" required></label>
+      <label>Phone <input name="phone"></label>
+      <label>Suburb <input name="suburb" value="Fremantle"></label>
+      <label>Service <select name="service"><option>Maintenance contract</option><option>Design and build</option><option>Irrigation repair</option><option>Garden cleanup</option></select></label>
+      <label>Urgency <select name="urgency"><option>This week</option><option>Next 2 weeks</option><option>Flexible</option></select></label>
+      <button class="primary-btn" type="submit">Create lead</button>
+    </form>
+  </dialog>
+
+  <div class="toast" id="app-toast" role="status" aria-live="polite"></div>
+  <script src="app-dashboard.js"></script>
+</body>
+</html>
