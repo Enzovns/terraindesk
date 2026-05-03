@@ -339,7 +339,7 @@ document.querySelector("#auth-form").addEventListener("submit", async (event) =>
       ? await supabaseClient.auth.signUp({ email: payload.email, password: payload.password })
       : await supabaseClient.auth.signInWithPassword({ email: payload.email, password: payload.password });
     if (result.error) throw result.error;
-    showToast(submitter === "signup" ? "Account created. Check your email if confirmation is enabled." : "Signed in.");
+    showToast(submitter === "signup" ? "Account created. Check your inbox and spam folder for the Supabase confirmation email." : "Signed in.");
   } catch (error) {
     showToast(error.message);
   }
@@ -350,6 +350,25 @@ document.querySelector("#signup-button").addEventListener("click", () => {
   submit.dataset.authMode = "signup";
   submit.click();
   submit.dataset.authMode = "signin";
+});
+
+document.querySelector("#resend-confirmation").addEventListener("click", async () => {
+  const email = document.querySelector("#auth-form [name='email']").value;
+  if (!email) {
+    showToast("Enter your email first, then click resend.");
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient.auth.resend({
+      type: "signup",
+      email
+    });
+    if (error) throw error;
+    showToast("Confirmation email requested again. Check inbox and spam.");
+  } catch (error) {
+    showToast(error.message);
+  }
 });
 
 document.querySelector("#sign-out").addEventListener("click", async () => {
