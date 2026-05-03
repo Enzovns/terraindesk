@@ -9,7 +9,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css">
 </head>
-<body>
+<body class="locked">
+  <section class="auth-screen" id="admin-key-screen">
+    <form class="auth-card" id="admin-key-form">
+      <a class="app-brand" href="/">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5c6.8-.4 11-4.6 12.5-12.5 3.2 7.7.8 14.6-6.7 17.2C8.1 23.1 5.4 21 5 17.5Z"/><path d="M5.3 17.4C8.6 14.9 12 11.8 15.5 8"/></svg>
+        </span>
+        TerrainDesk
+      </a>
+      <p class="eyebrow">Private founder admin</p>
+      <h1>Unlock command center</h1>
+      <p>Use your Vercel admin key to manage paid customers, onboarding, and workspace access.</p>
+      <div class="auth-form">
+        <label>Admin key <input name="key" type="password" autocomplete="current-password" required></label>
+        <button class="primary-btn" type="submit">Unlock admin</button>
+      </div>
+    </form>
+  </section>
+
   <aside class="app-sidebar">
     <a class="app-brand" href="/">
       <span class="brand-mark">
@@ -32,7 +50,11 @@
         <p class="eyebrow">Founder command center</p>
         <h1 id="view-title">Admin overview</h1>
       </div>
-      <button class="primary-btn" id="add-customer">Add customer</button>
+      <div class="topbar-actions">
+        <button class="ghost-btn" id="refresh-admin">Refresh</button>
+        <button class="ghost-btn" id="lock-admin">Lock</button>
+        <button class="primary-btn" id="add-customer">Add customer</button>
+      </div>
     </header>
 
     <section class="view active" id="admin-dashboard-view">
@@ -69,10 +91,10 @@
         </section>
         <section class="panel">
           <h2>Plan mix</h2>
-          <div class="weather-card">
+          <div class="weather-card" id="plan-mix">
             <span>Most common</span>
-            <strong>Operations</strong>
-            <p>Keep demos focused on scheduling, quote turnaround and invoice recovery.</p>
+            <strong>No customers yet</strong>
+            <p>Customers will appear here after checkout or manual creation.</p>
           </div>
         </section>
       </div>
@@ -81,7 +103,7 @@
 
   <dialog id="customer-modal" class="app-dialog">
     <form id="customer-form" method="dialog" class="dialog-card">
-      <button type="button" class="modal-close" data-close-customer aria-label="Close">×</button>
+      <button type="button" class="modal-close" data-close-customer aria-label="Close">&times;</button>
       <h2>Add customer</h2>
       <label>Company <input name="company" required></label>
       <label>Owner email <input name="email" type="email" required></label>

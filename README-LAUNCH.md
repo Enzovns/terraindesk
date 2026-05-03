@@ -6,11 +6,14 @@
 - `/api/demo-request` sends demo leads through Resend.
 - `/api/create-checkout-session` creates Stripe Checkout sessions for paid plans.
 - `/api/stripe-webhook` accepts Stripe `checkout.session.completed` events and emails the team.
+- `/api/stripe-webhook` also provisions the paid customer in Supabase and sends their workspace access email.
 - `/client.html` is the post-payment onboarding page for customers who paid today.
 - `/api/client-intake` emails the paid customer onboarding brief through Resend.
 - `/api/config` exposes the public Supabase URL and anon key to the browser.
 - `/api/bootstrap-company` provisions a company/profile for a newly signed-in Supabase user.
 - `/api/update-company` updates company settings using the Supabase service role.
+- `/admin.html` is the private founder admin panel.
+- `/api/admin-customers`, `/api/admin-create-customer`, `/api/admin-update-customer` and `/api/send-workspace-link` power the admin panel through Supabase.
 
 ## Required Supabase setup
 
@@ -21,6 +24,8 @@ Supabase requires:
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 The browser app uses `SUPABASE_ANON_KEY` with Row Level Security. Serverless API routes use `SUPABASE_SERVICE_ROLE_KEY` only for provisioning and company settings updates.
+
+For account emails, Supabase Auth still needs a working email provider. In Supabase, configure Auth SMTP with your Resend SMTP details, or temporarily disable "Confirm email" while testing. The app can send workspace links through Resend, but Supabase account confirmation emails are controlled by Supabase Auth.
 
 ## Required Resend setup
 
@@ -55,6 +60,50 @@ Then set:
 ```text
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
+
+The webhook must listen to:
+
+```text
+checkout.session.completed
+```
+
+## Required admin setup
+
+Set:
+
+```text
+ADMIN_API_KEY=your-long-private-key
+```
+
+Open:
+
+```text
+https://yourdomain.com/admin.html
+```
+
+Use that key to unlock the admin panel. Keep `ADMIN_API_KEY` private. It is only checked by serverless API routes and should not be shown on the public site.
+
+## Vercel production variables
+
+Add these exact variables in Vercel Project Settings -> Environment Variables:
+
+```text
+RESEND_API_KEY
+RESEND_FROM_EMAIL
+DEMO_TO_EMAIL
+ONBOARDING_TO_EMAIL
+ADMIN_API_KEY
+SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+STRIPE_SECRET_KEY
+STRIPE_PRICE_ESSENTIAL_AUD
+STRIPE_PRICE_OPERATIONS_AUD
+STRIPE_PRICE_MULTI_CREW_AUD
+STRIPE_WEBHOOK_SECRET
+```
+
+Redeploy after adding or changing them.
 
 ## Local run
 
