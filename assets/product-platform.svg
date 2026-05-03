@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#274633"/>
+  <rect x="80" y="80" width="1040" height="640" rx="44" fill="#fffefa"/>
+  <rect x="120" y="130" width="210" height="520" rx="26" fill="#f5f2ea"/>
+  <rect x="370" y="130" width="690" height="120" rx="26" fill="#f5f2ea"/>
+  <rect x="370" y="290" width="205" height="300" rx="26" fill="#f5f2ea"/>
+  <rect x="610" y="290" width="205" height="300" rx="26" fill="#f5f2ea"/>
+  <rect x="850" y="290" width="210" height="300" rx="26" fill="#f5f2ea"/>
+  <text x="400" y="205" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#17201b">TerrainDesk platform</text>
+  <text x="405" y="365" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#17201b">Quotes</text>
+  <text x="645" y="365" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#17201b">Routes</text>
+  <text x="885" y="365" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#17201b">Invoices</text>
+  <path d="M405 430h120M405 478h90M645 430h120M645 478h70M885 430h120M885 478h95" stroke="#3f6f53" stroke-width="18" stroke-linecap="round"/>
+  <rect x="150" y="180" width="120" height="34" rx="17" fill="#274633"/>
+  <rect x="150" y="250" width="140" height="26" rx="13" fill="#274633" opacity=".28"/>
+  <rect x="150" y="306" width="140" height="26" rx="13" fill="#274633" opacity=".28"/>
+  <rect x="150" y="362" width="140" height="26" rx="13" fill="#274633" opacity=".28"/>
+  <rect x="150" y="418" width="140" height="26" rx="13" fill="#274633" opacity=".28"/>
+  <rect x="150" y="474" width="140" height="26" rx="13" fill="#274633" opacity=".28"/>
+</svg>

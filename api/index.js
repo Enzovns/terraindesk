@@ -472,6 +472,20 @@ async function handleWorkspaceAction(req, res) {
     });
     return sendJson(res, 200, { ok: true, templates });
   }
+  if (body.action === "saveWorkspaceSettings") {
+    const existing = await supabaseFetch(`/rest/v1/automation_settings?company_id=eq.${encodeURIComponent(profile.company_id)}&select=*`);
+    const current = existing[0]?.settings || {};
+    const allowed = {};
+    for (const key of ["materials", "contracts", "depots", "permissions"]) {
+      if (Array.isArray(body[key])) allowed[key] = body[key];
+    }
+    await supabaseFetch("/rest/v1/automation_settings", {
+      method: "POST",
+      headers: { prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify({ company_id: profile.company_id, settings: { ...current, ...allowed } })
+    });
+    return sendJson(res, 200, { ok: true, settings: { ...current, ...allowed } });
+  }
   if (body.action === "updateJob") {
     const job = (await supabaseFetch(`/rest/v1/jobs?id=eq.${encodeURIComponent(body.jobId)}&company_id=eq.${encodeURIComponent(profile.company_id)}`, {
       method: "PATCH",

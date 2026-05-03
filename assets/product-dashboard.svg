@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fffefa"/>
+      <stop offset="1" stop-color="#e8efe4"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1100" fill="url(#bg)"/>
+  <rect x="70" y="70" width="760" height="960" rx="46" fill="#17201b"/>
+  <rect x="110" y="120" width="190" height="820" rx="28" fill="#fffefa" opacity=".94"/>
+  <circle cx="155" cy="170" r="24" fill="#274633"/>
+  <rect x="190" y="154" width="80" height="16" rx="8" fill="#17201b"/>
+  <g fill="#274633" opacity=".14">
+    <rect x="135" y="240" width="130" height="44" rx="14"/>
+    <rect x="135" y="304" width="130" height="44" rx="14"/>
+    <rect x="135" y="368" width="130" height="44" rx="14"/>
+    <rect x="135" y="432" width="130" height="44" rx="14"/>
+    <rect x="135" y="496" width="130" height="44" rx="14"/>
+  </g>
+  <rect x="330" y="120" width="460" height="820" rx="30" fill="#f5f2ea"/>
+  <text x="370" y="190" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#17201b">Operations cockpit</text>
+  <g>
+    <rect x="370" y="240" width="120" height="110" rx="20" fill="#fffefa"/>
+    <rect x="510" y="240" width="120" height="110" rx="20" fill="#fffefa"/>
+    <rect x="650" y="240" width="100" height="110" rx="20" fill="#fffefa"/>
+    <text x="392" y="306" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#274633">A$4k</text>
+    <text x="535" y="306" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#274633">8</text>
+    <text x="680" y="306" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#274633">3</text>
+  </g>
+  <rect x="370" y="390" width="380" height="130" rx="24" fill="#fffefa"/>
+  <text x="400" y="440" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#17201b">Quote waiting approval</text>
+  <text x="400" y="480" font-family="Arial, sans-serif" font-size="22" fill="#677169">Garden cleanup - proposed Tue</text>
+  <rect x="370" y="550" width="170" height="230" rx="24" fill="#fffefa"/>
+  <rect x="570" y="550" width="180" height="230" rx="24" fill="#fffefa"/>
+  <text x="400" y="602" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#17201b">Routes</text>
+  <text x="600" y="602" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#17201b">Materials</text>
+  <path d="M410 680h90M410 720h70M610 680h88M610 720h58" stroke="#274633" stroke-width="16" stroke-linecap="round" opacity=".8"/>
+  <rect x="370" y="810" width="380" height="80" rx="24" fill="#274633"/>
+  <text x="408" y="860" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#fffefa">Client portal link copied</text>
+</svg>

@@ -659,7 +659,7 @@ h3 {
   color: #fffefa;
   background:
     linear-gradient(rgba(16, 23, 19, 0.58), rgba(16, 23, 19, 0.88)),
-    url("assets/field-full.webp") center / cover;
+    url("assets/product-platform.svg") center / cover;
 }
 
 .feature.large p {
@@ -977,6 +977,34 @@ input[type="range"] {
 
 .price-panel.featured small {
   color: rgba(255, 255, 250, 0.6);
+}
+
+.price-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.price-list li {
+  color: #465149;
+  line-height: 1.35;
+}
+
+.price-list li::before {
+  content: "✓";
+  margin-right: 8px;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.price-panel.featured .price-list li {
+  color: rgba(255, 255, 250, 0.82);
+}
+
+.price-panel.featured .price-list li::before {
+  color: #fffefa;
 }
 
 .price-panel button {

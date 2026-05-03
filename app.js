@@ -2,25 +2,25 @@ const workflowContent = {
   lead: {
     label: "Automatic capture",
     title: "Lead qualified in 2 minutes",
-    text: "The client form detects the service type, asks for the right photos, estimates the zone and creates a call task with a tailored script.",
-    metrics: ["84.2% complete", "12 fields skipped", "1 priority call"]
+    text: "The client form captures service type, suburb, urgency and contact details, then creates a lead the owner can quote immediately.",
+    metrics: ["84.2% complete", "6 fields captured", "1 priority call"]
   },
   quote: {
     label: "Assisted quote",
     title: "Price, margin and options calculated",
-    text: "TerrainDesk combines labor, materials, distance, target margin and seasonality to prepare a clear proposal with three offer levels.",
-    metrics: ["27.8% margin", "A$8,740 proposed", "3 options"]
+    text: "TerrainDesk combines labour, materials, markup, GST and a proposed day into a quote the client can accept or revise.",
+    metrics: ["27.8% margin", "A$8,740 proposed", "Tue booked"]
   },
   crew: {
     label: "Intelligent dispatch",
     title: "The right crew at the right time",
-    text: "The schedule avoids conflicts, groups nearby jobs, checks stock and pushes the work order to mobile before the crew leaves the depot.",
+    text: "The schedule groups jobs by day, checks employee assignments, exports the route sheet and keeps the mobile work order ready.",
     metrics: ["42 km optimized", "3 members", "16 min saved"]
   },
   invoice: {
     label: "Closed cashflow",
     title: "Invoice sent after approval",
-    text: "When the after photos are signed off, the invoice goes out with a payment link, automatic follow-up and recurring maintenance offer.",
+    text: "When the job is complete, the invoice can be generated, emailed, reminded, marked paid and exported to accounting.",
     metrics: ["92.6% approved", "D+0 invoice", "2 follow-ups"]
   }
 };
@@ -32,7 +32,7 @@ const productContent = {
   sales: {
     label: "Sales pipeline",
     title: "From request to signed quote",
-    text: "Capture leads, score urgency, create clean proposals, collect deposits and schedule the first visit without copying data between tools.",
+    text: "Capture leads, score urgency, create clean proposals and schedule the first visit without copying data between tools.",
     metrics: [
       ["New request", "14"],
       ["Site visit", "8"],
@@ -54,10 +54,10 @@ const productContent = {
   finance: {
     label: "Finance desk",
     title: "Margins, deposits and invoices without the Friday-night cleanup",
-    text: "See quote margin before approval, take deposits, trigger invoices after field sign-off and sync clean records to accounting.",
+    text: "See quote margin, trigger invoices after job completion and export clean records to accounting.",
     metrics: [
       ["Open invoices", "A$18.4k"],
-      ["Deposits held", "A$7.2k"],
+      ["Paid invoices", "A$7.2k"],
       ["Gross margin", "31.8%"],
       ["Late follow-ups", "4"]
     ]
@@ -324,7 +324,7 @@ document.querySelector("#approve-quote").addEventListener("click", (event) => {
   quote.querySelector("span").textContent = "Approved quote";
   quote.querySelector("strong").textContent = "A$8,740 signed";
   button.style.background = "#73b987";
-  showToast("Quote approved. Deposit request and crew schedule are now queued.");
+  showToast("Quote approved. Crew schedule and client confirmation are now queued.");
 });
 
 document.querySelectorAll(".task-list button, .check-row").forEach((button) => {

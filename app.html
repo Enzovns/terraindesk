@@ -45,8 +45,13 @@
       <button data-view="quotes">Quotes</button>
       <button data-view="jobs">Jobs</button>
       <button data-view="schedule">Schedule</button>
+      <button data-view="routes">Routes</button>
       <button data-view="crew">Employee mobile</button>
+      <button data-view="materials">Materials</button>
+      <button data-view="contracts">Contracts</button>
       <button data-view="invoices">Invoices</button>
+      <button data-view="reports">Reports</button>
+      <button data-view="portal">Client portal</button>
       <button data-view="automations">Automations</button>
       <button data-view="settings">Settings</button>
     </nav>
@@ -72,6 +77,7 @@
         <article><span>Jobs scheduled</span><strong id="metric-jobs">0</strong></article>
         <article><span>Overdue invoices</span><strong id="metric-overdue">0</strong></article>
       </div>
+      <section class="panel plan-panel" id="plan-panel"></section>
       <div class="dashboard-grid">
         <section class="panel wide">
           <div class="panel-headline">
@@ -164,6 +170,59 @@
       </div>
     </section>
 
+    <section class="view" id="routes-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Dispatch</p>
+          <h2>Routes</h2>
+        </div>
+        <button class="ghost-btn" id="export-routes">Export route sheet</button>
+      </div>
+      <div class="route-grid" id="routes-grid"></div>
+    </section>
+
+    <section class="view" id="materials-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Stock control</p>
+          <h2>Materials</h2>
+        </div>
+        <button class="ghost-btn" id="export-materials">Export materials CSV</button>
+      </div>
+      <div class="tool-grid">
+        <form class="panel settings-form" id="materials-form">
+          <h2>Price book and stock</h2>
+          <p class="muted-copy">Use: item | unit | cost | stock | reorder level.</p>
+          <label>Materials <textarea name="materials" placeholder="Premium mulch | m3 | 120 | 18 | 6"></textarea></label>
+          <button class="primary-btn" type="submit">Save materials</button>
+        </form>
+        <section class="table-panel">
+          <table>
+            <thead><tr><th>Item</th><th>Cost</th><th>Stock</th><th>Status</th></tr></thead>
+            <tbody id="materials-table"></tbody>
+          </table>
+        </section>
+      </div>
+    </section>
+
+    <section class="view" id="contracts-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Recurring revenue</p>
+          <h2>Contracts</h2>
+        </div>
+      </div>
+      <div class="tool-grid">
+        <form class="panel settings-form" id="contracts-form">
+          <h2>Maintenance contracts</h2>
+          <p class="muted-copy">Use: client | service | frequency | monthly amount | next visit.</p>
+          <label>Contracts <textarea name="contracts" placeholder="Oak Ridge Estate | Lawn care | Fortnightly | 920 | Tue"></textarea></label>
+          <button class="primary-btn" type="submit">Save contracts</button>
+        </form>
+        <div class="card-grid" id="contracts-list"></div>
+      </div>
+    </section>
+
     <section class="view" id="invoices-view">
       <div class="section-bar">
         <div>
@@ -176,6 +235,43 @@
           <thead><tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
           <tbody id="invoices-table"></tbody>
         </table>
+      </div>
+    </section>
+
+    <section class="view" id="reports-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Margin and performance</p>
+          <h2>Reports</h2>
+        </div>
+        <button class="ghost-btn" id="export-report">Export report CSV</button>
+      </div>
+      <div class="report-grid" id="reports-grid"></div>
+    </section>
+
+    <section class="view" id="portal-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Client experience</p>
+          <h2>Client portal</h2>
+        </div>
+      </div>
+      <div class="tool-grid">
+        <section class="panel">
+          <h2>Public booking</h2>
+          <p class="muted-copy">This is the link homeowners use to request lawn mowing, cleanups, irrigation, design/build or maintenance work. New requests land in Leads.</p>
+          <label>Booking link <input id="portal-booking-link" readonly></label>
+          <button class="primary-btn" type="button" id="copy-portal-link">Copy client portal link</button>
+        </section>
+        <section class="panel">
+          <h2>Quote approval flow</h2>
+          <div class="portal-steps">
+            <span>1. Owner builds quote with proposed day</span>
+            <span>2. Client receives email link</span>
+            <span>3. Client accepts or requests price/date changes</span>
+            <span>4. Accepted quote becomes scheduled work</span>
+          </div>
+        </section>
       </div>
     </section>
 
@@ -215,11 +311,23 @@
           </form>
         </section>
         <section class="panel">
+          <h2>Multi-crew controls</h2>
+          <form id="multi-crew-form" class="settings-form">
+            <label>Depots, one per line <textarea name="depots" placeholder="Perth North Depot&#10;Fremantle Yard"></textarea></label>
+            <label>Permission presets, one per line <textarea name="permissions" placeholder="Owner: all access&#10;Manager: sales, jobs, invoices&#10;Employee: crew mobile, schedule"></textarea></label>
+            <button class="primary-btn" type="submit">Save team controls</button>
+          </form>
+        </section>
+        <section class="panel">
           <h2>Integrations</h2>
           <div class="integration-row"><span>Stripe</span><b>Active</b></div>
           <div class="integration-row"><span>Resend</span><b>Active</b></div>
           <div class="integration-row"><span>Xero</span><button class="mini-btn" id="export-xero">Export CSV</button></div>
+          <div class="integration-row"><span>QuickBooks</span><button class="mini-btn" id="export-quickbooks">Export CSV</button></div>
           <div class="integration-row"><span>Google Calendar</span><button class="mini-btn" id="export-calendar">Download ICS</button></div>
+          <div class="integration-row"><span>Zapier</span><button class="mini-btn" id="export-zapier">Download JSON</button></div>
+          <div class="integration-row"><span>Google Drive</span><button class="mini-btn" id="export-drive">Proof archive manifest</button></div>
+          <div class="integration-row"><span>SMS reminders</span><b>Email fallback active</b></div>
         </section>
         <section class="panel">
           <h2>Public booking link</h2>

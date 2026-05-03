@@ -21,6 +21,24 @@ const automations = [
   ["marginAlert", "Margin alert under 25%", "Notify the owner before a low-margin quote is sent."]
 ];
 
+const planCatalog = {
+  Essential: {
+    price: "A$149/mo",
+    included: ["CRM", "Quotes", "Scheduling", "Work orders", "Invoices", "Xero CSV", "Google Calendar export"],
+    locked: ["Automations", "Crew mobile", "Route optimization", "Client portal", "Margin reports", "Recurring contracts"]
+  },
+  Operations: {
+    price: "A$329/mo",
+    included: ["Everything in Essential", "Automations", "Crew mobile", "Route optimization", "Client portal", "Materials", "Contracts", "Margin reports"],
+    locked: ["Advanced permissions", "Multiple depots", "Migration support"]
+  },
+  "Multi-crew": {
+    price: "Custom",
+    included: ["Everything in Operations", "Advanced permissions", "Multiple depots", "Accounting exports", "Migration support"],
+    locked: []
+  }
+};
+
 function money(value) {
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
@@ -70,6 +88,50 @@ function defaultServiceTemplates() {
 function serviceTemplates() {
   const templates = state.automations.serviceTemplates;
   return Array.isArray(templates) && templates.length ? templates : defaultServiceTemplates();
+}
+
+function currentPlan() {
+  return planCatalog[company?.plan] ? company.plan : "Operations";
+}
+
+function featureLocked(feature) {
+  return planCatalog[currentPlan()].locked.includes(feature);
+}
+
+function defaultMaterials() {
+  return [
+    { item: "Premium mulch", unit: "m3", cost: 120, stock: 18, reorder: 6 },
+    { item: "Sir Walter turf", unit: "m2", cost: 14, stock: 240, reorder: 80 },
+    { item: "Drip irrigation line", unit: "roll", cost: 96, stock: 5, reorder: 3 },
+    { item: "Native plants mix", unit: "tray", cost: 72, stock: 9, reorder: 4 }
+  ];
+}
+
+function materialsList() {
+  const materials = state.automations.materials;
+  return Array.isArray(materials) && materials.length ? materials : defaultMaterials();
+}
+
+function defaultContracts() {
+  return [
+    { client: "Oak Ridge Estate", service: "Lawn and garden care", frequency: "Fortnightly", amount: 920, next: "Tue" },
+    { client: "Cottesloe Villas", service: "Irrigation and hedge care", frequency: "Monthly", amount: 640, next: "Fri" }
+  ];
+}
+
+function contractsList() {
+  const contracts = state.automations.contracts;
+  return Array.isArray(contracts) && contracts.length ? contracts : defaultContracts();
+}
+
+function depotsList() {
+  const depots = state.automations.depots;
+  return Array.isArray(depots) && depots.length ? depots : ["Main depot"];
+}
+
+function permissionsList() {
+  const permissions = state.automations.permissions;
+  return Array.isArray(permissions) && permissions.length ? permissions : ["Owner: all access", "Manager: sales, jobs, invoices", "Employee: crew mobile, schedule"];
 }
 
 async function getConfig() {
@@ -198,6 +260,19 @@ function renderMetrics() {
   document.querySelector("#metric-overdue").textContent = overdue;
 }
 
+function renderPlan() {
+  const plan = currentPlan();
+  const details = planCatalog[plan];
+  document.querySelector("#plan-panel").innerHTML = `
+    <div>
+      <p class="eyebrow">Current plan</p>
+      <h2>${escapeHtml(plan)} <span class="plan-price">${escapeHtml(details.price)}</span></h2>
+      <p class="muted-copy">Included now: ${details.included.map(escapeHtml).join(", ")}.</p>
+    </div>
+    ${details.locked.length ? `<div class="locked-list">${details.locked.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>` : `<strong class="success-text">All platform modules unlocked</strong>`}
+  `;
+}
+
 function renderActions() {
   const actions = [
     ...state.leads.filter((lead) => lead.status === "New").map((lead) => ({
@@ -307,6 +382,22 @@ function renderSchedule() {
   `).join("");
 }
 
+function renderRoutes() {
+  const scheduled = state.jobs.filter((job) => !["Complete", "Proposed", "Blocked"].includes(job.status));
+  const grouped = ["Mon", "Tue", "Wed", "Thu", "Fri"].map((day) => ({
+    day,
+    jobs: scheduled.filter((job) => job.day === day),
+    km: scheduled.filter((job) => job.day === day).length * 14 + 8
+  }));
+  document.querySelector("#routes-grid").innerHTML = grouped.map((group) => `
+    <section class="route-day">
+      <div class="route-head"><strong>${group.day}</strong><span>${group.jobs.length} jobs - ${group.jobs.length ? group.km : 0} km est.</span></div>
+      ${featureLocked("Route optimization") ? `<p class="locked-note">Upgrade to Operations for route optimization.</p>` : ""}
+      ${group.jobs.map((job, index) => `<article class="route-stop"><b>${index + 1}</b><div><strong>${escapeHtml(job.service)}</strong><p>${escapeHtml(leadById(job.lead_id).suburb || "")} - ${escapeHtml(job.crew || "Unassigned")}</p></div></article>`).join("") || `<p class="empty-state">No route planned.</p>`}
+    </section>
+  `).join("");
+}
+
 function renderCrew() {
   document.querySelector("#crew-jobs").innerHTML = state.jobs.filter((job) => !["Complete", "Proposed", "Blocked"].includes(job.status)).map((job) => `
     <article class="crew-job">
@@ -327,6 +418,40 @@ function renderCrew() {
   `).join("") || `<p>No active route.</p>`;
 }
 
+function renderMaterials() {
+  const materialsInput = document.querySelector("#materials-form [name='materials']");
+  if (materialsInput) {
+    materialsInput.value = materialsList().map((item) => `${item.item} | ${item.unit} | ${item.cost} | ${item.stock} | ${item.reorder}`).join("\n");
+  }
+  document.querySelector("#materials-table").innerHTML = materialsList().map((item) => {
+    const low = Number(item.stock) <= Number(item.reorder);
+    return `
+      <tr>
+        <td><strong>${escapeHtml(item.item)}</strong><br><span>${escapeHtml(item.unit)}</span></td>
+        <td>${money(item.cost)}</td>
+        <td>${escapeHtml(item.stock)}</td>
+        <td><span class="pill ${low ? "danger-pill" : "success-pill"}">${low ? "Reorder" : "In stock"}</span></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderContracts() {
+  const contractsInput = document.querySelector("#contracts-form [name='contracts']");
+  if (contractsInput) {
+    contractsInput.value = contractsList().map((item) => `${item.client} | ${item.service} | ${item.frequency} | ${item.amount} | ${item.next}`).join("\n");
+  }
+  document.querySelector("#contracts-list").innerHTML = contractsList().map((contract) => `
+    <article class="card">
+      <span>${escapeHtml(contract.frequency)}</span>
+      <h3>${escapeHtml(contract.client)}</h3>
+      <strong>${money(contract.amount)} / month</strong>
+      <p>${escapeHtml(contract.service)} - next visit ${escapeHtml(contract.next || "TBC")}</p>
+      ${featureLocked("Recurring contracts") ? `<p class="locked-note">Upgrade to Operations to manage recurring contracts.</p>` : ""}
+    </article>
+  `).join("");
+}
+
 function renderInvoices() {
   document.querySelector("#invoices-table").innerHTML = state.invoices.map((invoice) => `
     <tr>
@@ -343,13 +468,36 @@ function renderInvoices() {
   `).join("") || `<tr><td colspan="6">No invoices yet.</td></tr>`;
 }
 
+function renderReports() {
+  const quoted = state.quotes.reduce((sum, quote) => sum + Number(quote.amount || 0), 0);
+  const won = state.quotes.filter((quote) => ["Accepted", "Scheduled"].includes(quote.status)).reduce((sum, quote) => sum + Number(quote.amount || 0), 0);
+  const invoiced = state.invoices.reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+  const paid = state.invoices.filter((invoice) => invoice.status === "Paid").reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+  const estimatedMargin = quoted ? Math.round(((quoted * 0.32) / quoted) * 100) : 0;
+  document.querySelector("#reports-grid").innerHTML = `
+    ${featureLocked("Margin reports") ? `<section class="panel"><h2>Upgrade required</h2><p class="muted-copy">Margin reports are included in Operations and Multi-crew.</p></section>` : ""}
+    <article><span>Total quoted</span><strong>${money(quoted)}</strong></article>
+    <article><span>Won pipeline</span><strong>${money(won)}</strong></article>
+    <article><span>Invoiced</span><strong>${money(invoiced)}</strong></article>
+    <article><span>Paid</span><strong>${money(paid)}</strong></article>
+    <article><span>Estimated gross margin</span><strong>${estimatedMargin}%</strong></article>
+    <article><span>Active contracts</span><strong>${contractsList().length}</strong></article>
+  `;
+}
+
+function renderPortal() {
+  const link = company?.id ? `${window.location.origin}/b?c=${company.id}` : "";
+  const input = document.querySelector("#portal-booking-link");
+  if (input) input.value = link;
+}
+
 function renderAutomations() {
   document.querySelector("#automation-list").innerHTML = automations.map(([key, title, description]) => `
     <article class="automation-rule">
       <div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(description)}</p></div>
-      <button class="switch ${state.automations[key] ? "active" : ""}" data-automation="${key}" aria-label="${escapeHtml(title)}"></button>
+      <button class="switch ${state.automations[key] ? "active" : ""}" data-automation="${key}" aria-label="${escapeHtml(title)}" ${featureLocked("Automations") ? "disabled" : ""}></button>
     </article>
-  `).join("");
+  `).join("") + (featureLocked("Automations") ? `<p class="locked-note">Automations are included from the Operations plan.</p>` : "");
 }
 
 function renderCompany() {
@@ -366,6 +514,10 @@ function renderCompany() {
   if (templatesInput) {
     templatesInput.value = serviceTemplates().map((item) => `${item.service} | ${item.hours} | ${item.rate} | ${item.materials} | ${item.markup}`).join("\n");
   }
+  const depotsInput = document.querySelector("#multi-crew-form [name='depots']");
+  if (depotsInput) depotsInput.value = depotsList().join("\n");
+  const permissionsInput = document.querySelector("#multi-crew-form [name='permissions']");
+  if (permissionsInput) permissionsInput.value = permissionsList().join("\n");
   renderEmployeeChoices();
   renderServiceTemplates();
 }
@@ -409,16 +561,38 @@ function parseTemplates(value) {
   }).filter(Boolean);
 }
 
+function parseMaterials(value) {
+  return String(value || "").split(/\r?\n/).map((line) => {
+    const [item, unit, cost, stock, reorder] = line.split("|").map((part) => part.trim());
+    if (!item) return null;
+    return { item, unit: unit || "unit", cost: Number(cost || 0), stock: Number(stock || 0), reorder: Number(reorder || 0) };
+  }).filter(Boolean);
+}
+
+function parseContracts(value) {
+  return String(value || "").split(/\r?\n/).map((line) => {
+    const [client, service, frequency, amount, next] = line.split("|").map((part) => part.trim());
+    if (!client) return null;
+    return { client, service: service || "Maintenance", frequency: frequency || "Monthly", amount: Number(amount || 0), next: next || "TBC" };
+  }).filter(Boolean);
+}
+
 function renderAll() {
   renderCompany();
+  renderPlan();
   renderMetrics();
   renderActions();
   renderLeads();
   renderQuotes();
   renderJobs();
   renderSchedule();
+  renderRoutes();
   renderCrew();
+  renderMaterials();
+  renderContracts();
   renderInvoices();
+  renderReports();
+  renderPortal();
   renderAutomations();
 }
 
@@ -443,8 +617,13 @@ function switchView(view) {
     quotes: "Quote builder",
     jobs: "Job board",
     schedule: "Crew schedule",
+    routes: "Route planning",
     crew: "Crew mobile",
+    materials: "Materials and stock",
+    contracts: "Recurring contracts",
     invoices: "Invoices",
+    reports: "Reports",
+    portal: "Client portal",
     automations: "Automations",
     settings: "Settings"
   }[view];
@@ -545,6 +724,47 @@ document.querySelector("#templates-form").addEventListener("submit", async (even
   }
 });
 
+document.querySelector("#materials-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const materials = parseMaterials(new FormData(event.currentTarget).get("materials"));
+    const result = await workspaceAction({ action: "saveWorkspaceSettings", materials });
+    state.automations = result.settings;
+    renderAll();
+    showToast("Materials saved.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.querySelector("#contracts-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const contracts = parseContracts(new FormData(event.currentTarget).get("contracts"));
+    const result = await workspaceAction({ action: "saveWorkspaceSettings", contracts });
+    state.automations = result.settings;
+    renderAll();
+    showToast("Contracts saved.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.querySelector("#multi-crew-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const form = new FormData(event.currentTarget);
+    const depots = String(form.get("depots") || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+    const permissions = String(form.get("permissions") || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+    const result = await workspaceAction({ action: "saveWorkspaceSettings", depots, permissions });
+    state.automations = result.settings;
+    renderAll();
+    showToast("Team controls saved.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
 document.querySelector("#service-template").addEventListener("change", (event) => {
   const template = serviceTemplates()[Number(event.currentTarget.value)];
   if (!template) return;
@@ -554,6 +774,13 @@ document.querySelector("#service-template").addEventListener("change", (event) =
   form.rate.value = template.rate;
   form.materials.value = template.materials;
   form.markup.value = template.markup;
+});
+
+document.querySelector("#copy-portal-link").addEventListener("click", async () => {
+  const input = document.querySelector("#portal-booking-link");
+  if (!input.value) return;
+  await navigator.clipboard.writeText(input.value);
+  showToast("Client portal link copied.");
 });
 
 document.querySelector("#export-calendar").addEventListener("click", () => {
@@ -576,6 +803,17 @@ document.querySelector("#export-calendar").addEventListener("click", () => {
   downloadText("terraindesk-schedule.ics", ics, "text/calendar");
 });
 
+document.querySelector("#export-routes").addEventListener("click", () => {
+  const rows = [["Day", "Order", "Client", "Suburb", "Service", "Employees"]];
+  ["Mon", "Tue", "Wed", "Thu", "Fri"].forEach((day) => {
+    state.jobs.filter((job) => job.day === day && !["Complete", "Proposed", "Blocked"].includes(job.status)).forEach((job, index) => {
+      const lead = leadById(job.lead_id);
+      rows.push([day, index + 1, lead.name, lead.suburb || "", job.service, job.crew || ""]);
+    });
+  });
+  downloadCsv("terraindesk-routes.csv", rows);
+});
+
 document.querySelector("#export-xero").addEventListener("click", () => {
   const rows = [
     ["ContactName", "EmailAddress", "InvoiceNumber", "Reference", "DueDate", "Description", "Quantity", "UnitAmount", "AccountCode", "TaxType"],
@@ -584,7 +822,58 @@ document.querySelector("#export-xero").addEventListener("click", () => {
       return [lead.name, lead.email || "", String(invoice.id).slice(0, 8), "TerrainDesk", invoice.due || "", "Landscaping services", "1", invoice.amount || 0, "200", "OUTPUT"];
     })
   ];
-  downloadText("xero-invoices.csv", rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n"), "text/csv");
+  downloadCsv("xero-invoices.csv", rows);
+});
+
+document.querySelector("#export-quickbooks").addEventListener("click", () => {
+  const rows = [
+    ["Customer", "Email", "InvoiceNo", "InvoiceDate", "DueDate", "Product", "Description", "Amount", "TaxCode"],
+    ...state.invoices.map((invoice) => {
+      const lead = leadById(invoice.lead_id);
+      return [lead.name, lead.email || "", String(invoice.id).slice(0, 8), new Date().toISOString().slice(0, 10), invoice.due || "", "Landscaping services", "TerrainDesk job invoice", invoice.amount || 0, "GST"];
+    })
+  ];
+  downloadCsv("quickbooks-invoices.csv", rows);
+});
+
+document.querySelector("#export-materials").addEventListener("click", () => {
+  downloadCsv("terraindesk-materials.csv", [["Item", "Unit", "Cost", "Stock", "Reorder"], ...materialsList().map((item) => [item.item, item.unit, item.cost, item.stock, item.reorder])]);
+});
+
+document.querySelector("#export-report").addEventListener("click", () => {
+  downloadCsv("terraindesk-report.csv", [
+    ["Metric", "Value"],
+    ["Leads", state.leads.length],
+    ["Quotes", state.quotes.length],
+    ["Jobs", state.jobs.length],
+    ["Invoices", state.invoices.length],
+    ["Contracts", contractsList().length]
+  ]);
+});
+
+document.querySelector("#export-zapier").addEventListener("click", () => {
+  downloadText("terraindesk-zapier-export.json", JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    company,
+    leads: state.leads,
+    quotes: state.quotes,
+    jobs: state.jobs,
+    invoices: state.invoices
+  }, null, 2), "application/json");
+});
+
+document.querySelector("#export-drive").addEventListener("click", () => {
+  downloadText("terraindesk-proof-archive-manifest.json", JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    folder: `${company?.name || "TerrainDesk"} / Job proofs`,
+    jobs: state.jobs.map((job) => ({
+      jobId: job.id,
+      client: leadById(job.lead_id).name,
+      service: job.service,
+      checklist: job.checklist || [],
+      suggestedFiles: ["before-photos", "after-photos", "client-signoff"]
+    }))
+  }, null, 2), "application/json");
 });
 
 function downloadText(filename, content, type) {
@@ -595,6 +884,10 @@ function downloadText(filename, content, type) {
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadCsv(filename, rows) {
+  downloadText(filename, rows.map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n"), "text/csv");
 }
 
 function nextWeekdayStamp(targetDay) {
