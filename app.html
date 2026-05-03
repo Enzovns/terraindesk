@@ -61,7 +61,6 @@
       </div>
       <div class="topbar-actions">
         <button class="ghost-btn" id="sign-out">Sign out</button>
-        <button class="ghost-btn" data-seed>Reset demo data</button>
         <button class="primary-btn" data-action="new-lead">New lead</button>
       </div>
     </header>
@@ -129,7 +128,7 @@
           <label>Materials <input name="materials" type="number" min="0" value="420"></label>
           <label>Markup % <input name="markup" type="number" min="0" value="28"></label>
           <label>Proposed day <select name="day"><option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option><option>Fri</option></select></label>
-          <label>Employees <select name="employees" id="quote-employees" multiple></select></label>
+          <label>Employees <div class="choice-list" id="quote-employees"></div></label>
           <button class="primary-btn" type="submit">Create quote</button>
         </form>
       </div>
@@ -251,11 +250,7 @@
           <option>Fri</option>
         </select>
       </label>
-      <label>Employees
-        <select name="employees" id="schedule-employees" multiple>
-          <option>Owner</option>
-        </select>
-      </label>
+      <label>Employees <div class="choice-list" id="schedule-employees"></div></label>
       <button class="primary-btn" type="submit">Schedule job</button>
     </form>
   </dialog>

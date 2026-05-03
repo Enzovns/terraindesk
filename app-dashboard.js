@@ -154,24 +154,17 @@ async function ensureProfile() {
 }
 
 async function loadWorkspace() {
-  const [leadsResult, quotesResult, jobsResult, invoicesResult, automationResult] = await Promise.all([
-    supabaseClient.from("leads").select("*").order("created_at", { ascending: false }),
-    supabaseClient.from("quotes").select("*").order("created_at", { ascending: false }),
-    supabaseClient.from("jobs").select("*").order("created_at", { ascending: false }),
-    supabaseClient.from("invoices").select("*").order("created_at", { ascending: false }),
-    supabaseClient.from("automation_settings").select("*").eq("company_id", profile.company_id).limit(1)
-  ]);
-
-  for (const result of [leadsResult, quotesResult, jobsResult, invoicesResult, automationResult]) {
-    if (result.error) throw result.error;
-  }
-
+  const response = await fetch("/api/workspace-data", {
+    headers: { authorization: `Bearer ${session.access_token}` }
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Could not load workspace.");
   state = {
-    leads: leadsResult.data || [],
-    quotes: quotesResult.data || [],
-    jobs: jobsResult.data || [],
-    invoices: invoicesResult.data || [],
-    automations: automationResult.data?.[0]?.settings || Object.fromEntries(automations.map(([key]) => [key, true]))
+    leads: result.leads || [],
+    quotes: result.quotes || [],
+    jobs: result.jobs || [],
+    invoices: result.invoices || [],
+    automations: result.automations || Object.fromEntries(automations.map(([key]) => [key, true]))
   };
 }
 
@@ -204,6 +197,12 @@ function renderActions() {
       detail: `${money(quote.amount)} waiting approval`,
       action: "Email quote",
       attrs: `data-email-quote="${quote.id}"`
+    })),
+    ...state.quotes.filter((quote) => quote.status === "Revision requested").map((quote) => ({
+      title: `Revise quote for ${leadById(quote.lead_id).name}`,
+      detail: `${money(quote.amount)} needs price or timing changes`,
+      action: "Open quote",
+      attrs: `data-build-quote="${quote.lead_id}"`
     })),
     ...state.invoices.filter((invoice) => invoice.status !== "Paid").map((invoice) => ({
       title: `Invoice ${String(invoice.id).slice(0, 8)}`,
@@ -353,7 +352,9 @@ function renderCompany() {
 }
 
 function renderEmployeeChoices() {
-  const options = employeesList().map((employee) => `<option value="${escapeHtml(employee)}">${escapeHtml(employee)}</option>`).join("");
+  const options = employeesList().map((employee) => `
+    <label class="choice-option"><input type="checkbox" name="employees" value="${escapeHtml(employee)}"> <span>${escapeHtml(employee)}</span></label>
+  `).join("");
   const quoteEmployees = document.querySelector("#quote-employees");
   const scheduleEmployees = document.querySelector("#schedule-employees");
   if (quoteEmployees) quoteEmployees.innerHTML = options;
@@ -362,8 +363,9 @@ function renderEmployeeChoices() {
 
 function formPayload(form) {
   const payload = Object.fromEntries(new FormData(form));
-  form.querySelectorAll("select[multiple]").forEach((select) => {
-    payload[select.name] = Array.from(select.selectedOptions).map((option) => option.value).join(", ");
+  const names = new Set(Array.from(form.querySelectorAll("input[type='checkbox']")).map((input) => input.name));
+  names.forEach((name) => {
+    payload[name] = Array.from(form.querySelectorAll(`input[type='checkbox'][name='${name}']:checked`)).map((input) => input.value).join(", ");
   });
   return payload;
 }
@@ -687,18 +689,6 @@ document.addEventListener("click", async (event) => {
       if (error) throw error;
       renderAutomations();
     }
-  } catch (error) {
-    showToast(error.message);
-  }
-});
-
-document.querySelector("[data-seed]").addEventListener("click", async () => {
-  if (!profile) return;
-  try {
-    await createLead({ name: "Amelia Hart", email: "amelia@example.com", phone: "+61 412 845 102", suburb: "Fremantle", service: "Garden cleanup", urgency: "This week" });
-    await createLead({ name: "Marcus Venn", email: "marcus@example.com", phone: "+61 421 330 994", suburb: "Subiaco", service: "Maintenance contract", urgency: "Next 2 weeks" });
-    await refresh();
-    showToast("Demo leads added.");
   } catch (error) {
     showToast(error.message);
   }

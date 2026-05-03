@@ -18,13 +18,29 @@
       <p class="booking-copy" id="quote-copy"></p>
       <div class="quote-detail-grid">
         <article><span>Proposed day</span><strong id="quote-day">-</strong></article>
-        <article><span>Assigned employees</span><strong id="quote-employees">-</strong></article>
+        <article><span>Scope</span><strong id="quote-scope">-</strong></article>
         <article><span>Company</span><strong id="quote-company">-</strong></article>
       </div>
       <div class="quote-actions">
         <button class="primary-btn" id="accept-quote">Accept quote</button>
-        <button class="ghost-btn" id="decline-quote">Decline</button>
+        <button class="ghost-btn" id="show-revision">Request changes</button>
       </div>
+      <form class="revision-form" id="revision-form" hidden>
+        <h2>Request a change</h2>
+        <label>Target budget <input name="targetBudget" placeholder="A$850"></label>
+        <label>Preferred day
+          <select name="preferredDay">
+            <option value="">No preference</option>
+            <option>Mon</option>
+            <option>Tue</option>
+            <option>Wed</option>
+            <option>Thu</option>
+            <option>Fri</option>
+          </select>
+        </label>
+        <label>What should change? <textarea name="note" placeholder="Tell the team what price, scope or timing would work better."></textarea></label>
+        <button class="primary-btn" type="submit">Send change request</button>
+      </form>
       <p class="booking-status" id="quote-status"></p>
     </section>
   </main>

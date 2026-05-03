@@ -5,9 +5,10 @@ const total = document.querySelector("#quote-total");
 const copy = document.querySelector("#quote-copy");
 const statusEl = document.querySelector("#quote-status");
 const acceptButton = document.querySelector("#accept-quote");
-const declineButton = document.querySelector("#decline-quote");
+const showRevisionButton = document.querySelector("#show-revision");
+const revisionForm = document.querySelector("#revision-form");
 const dayEl = document.querySelector("#quote-day");
-const employeesEl = document.querySelector("#quote-employees");
+const scopeEl = document.querySelector("#quote-scope");
 const companyEl = document.querySelector("#quote-company");
 
 function money(value) {
@@ -29,20 +30,20 @@ async function loadQuote() {
   const proposed = result.proposedJob || {};
   copy.textContent = `${companyName} sent this quote to ${result.lead.name || "you"}. Accepting confirms both the price and the proposed appointment.`;
   dayEl.textContent = proposed.day || "To be confirmed";
-  employeesEl.textContent = proposed.crew || "To be assigned";
+  scopeEl.textContent = result.quote.service || "Landscaping work";
   companyEl.textContent = companyName;
-  const closed = ["Accepted", "Declined", "Scheduled"].includes(result.quote.status);
+  const closed = ["Accepted", "Declined", "Scheduled", "Revision requested"].includes(result.quote.status);
   acceptButton.disabled = closed;
-  declineButton.disabled = closed;
+  showRevisionButton.disabled = closed;
   statusEl.textContent = closed ? `Current status: ${result.quote.status}.` : "Please accept or decline below.";
 }
 
-async function decide(decision) {
+async function decide(decision, extra = {}) {
   statusEl.textContent = "Sending response...";
   const response = await fetch("/api/public-quote", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ quoteId, decision })
+    body: JSON.stringify({ quoteId, decision, ...extra })
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Could not update quote.");
@@ -56,13 +57,21 @@ acceptButton.addEventListener("click", () => decide("accept").catch((error) => {
   statusEl.textContent = error.message;
 }));
 
-declineButton.addEventListener("click", () => decide("decline").catch((error) => {
-  statusEl.textContent = error.message;
-}));
+showRevisionButton.addEventListener("click", () => {
+  revisionForm.hidden = false;
+  showRevisionButton.hidden = true;
+});
+
+revisionForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  decide("decline", Object.fromEntries(new FormData(revisionForm))).catch((error) => {
+    statusEl.textContent = error.message;
+  });
+});
 
 loadQuote().catch((error) => {
   title.textContent = "Quote unavailable";
   copy.textContent = error.message;
   acceptButton.disabled = true;
-  declineButton.disabled = true;
+  showRevisionButton.disabled = true;
 });

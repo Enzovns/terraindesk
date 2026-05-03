@@ -487,6 +487,27 @@ async function handleWorkspaceAction(req, res) {
   return sendJson(res, 422, { ok: false, error: "Unknown workspace action." });
 }
 
+async function handleWorkspaceData(req, res) {
+  if (req.method !== "GET") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
+  const { profile } = await getAuthedProfile(req);
+  const companyId = encodeURIComponent(profile.company_id);
+  const [leads, quotes, jobs, invoices, automationRows] = await Promise.all([
+    supabaseFetch(`/rest/v1/leads?company_id=eq.${companyId}&select=*&order=created_at.desc`),
+    supabaseFetch(`/rest/v1/quotes?company_id=eq.${companyId}&select=*&order=created_at.desc`),
+    supabaseFetch(`/rest/v1/jobs?company_id=eq.${companyId}&select=*&order=created_at.desc`),
+    supabaseFetch(`/rest/v1/invoices?company_id=eq.${companyId}&select=*&order=created_at.desc`),
+    supabaseFetch(`/rest/v1/automation_settings?company_id=eq.${companyId}&select=*`)
+  ]);
+  return sendJson(res, 200, {
+    ok: true,
+    leads,
+    quotes,
+    jobs,
+    invoices,
+    automations: automationRows[0]?.settings || defaultAutomationSettings
+  });
+}
+
 async function handlePublicLead(req, res) {
   if (req.method !== "POST") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
   const body = await readJson(req);
@@ -530,13 +551,30 @@ async function handlePublicQuote(req, res) {
   if (req.method === "GET") return sendJson(res, 200, { ok: true, quote, lead, company, proposedJob });
   if (req.method !== "POST") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
 
-  const nextStatus = body.decision === "decline" ? "Declined" : "Accepted";
+  const hasCounter = Boolean(body.preferredDay || body.targetBudget || body.note);
+  const nextStatus = body.decision === "decline" ? (hasCounter ? "Revision requested" : "Declined") : "Accepted";
   const updated = (await supabaseFetch(`/rest/v1/quotes?id=eq.${encodeURIComponent(quote.id)}`, {
     method: "PATCH",
     body: JSON.stringify({ status: nextStatus })
   }))[0];
   if (body.decision === "decline") {
     await supabaseFetch(`/rest/v1/jobs?quote_id=eq.${encodeURIComponent(quote.id)}&status=eq.Proposed`, { method: "DELETE" });
+    const owner = (await supabaseFetch(`/rest/v1/profiles?company_id=eq.${encodeURIComponent(quote.company_id)}&role=eq.owner&select=email`))[0];
+    if (owner?.email && hasCounter) {
+      await sendResendEmail({
+        to: owner.email,
+        subject: `Quote revision requested - ${lead.name || "Customer"}`,
+        html: `
+          <h1>Quote revision requested</h1>
+          <p><strong>Customer:</strong> ${escapeHtml(lead.name || "")}</p>
+          <p><strong>Original quote:</strong> ${escapeHtml(money(quote.amount))}</p>
+          <p><strong>Target budget:</strong> ${escapeHtml(body.targetBudget || "Not provided")}</p>
+          <p><strong>Preferred day:</strong> ${escapeHtml(body.preferredDay || "Not provided")}</p>
+          <p><strong>Note:</strong> ${escapeHtml(body.note || "")}</p>
+        `,
+        text: `Quote revision requested by ${lead.name || "customer"}. Target: ${body.targetBudget || "n/a"}, day: ${body.preferredDay || "n/a"}`
+      });
+    }
   } else {
     await supabaseFetch(`/rest/v1/jobs?quote_id=eq.${encodeURIComponent(quote.id)}&status=eq.Proposed`, {
       method: "PATCH",
@@ -558,6 +596,7 @@ const routes = {
   "admin-create-customer": handleAdminCreateCustomer,
   "admin-update-customer": handleAdminUpdateCustomer,
   "send-workspace-link": handleSendWorkspaceLink,
+  "workspace-data": handleWorkspaceData,
   "workspace-action": handleWorkspaceAction,
   "public-lead": handlePublicLead,
   "customer-message": handleCustomerMessage,
