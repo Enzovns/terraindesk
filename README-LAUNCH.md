@@ -22,14 +22,14 @@ The sending email must be on a verified Resend domain. Resend's official docs sa
 
 ## Required Stripe setup
 
-Stripe Checkout requires:
+Stripe Checkout requires AUD recurring Prices:
 
 - `STRIPE_SECRET_KEY`
-- `STRIPE_PRICE_ESSENTIAL`
-- `STRIPE_PRICE_OPERATIONS`
-- `STRIPE_PRICE_MULTI_CREW`
+- `STRIPE_PRICE_ESSENTIAL_AUD`
+- `STRIPE_PRICE_OPERATIONS_AUD`
+- `STRIPE_PRICE_MULTI_CREW_AUD`
 
-Create recurring Stripe Prices for the plans, then put the price IDs in `.env`.
+Create recurring Stripe Prices in Australian dollars for the plans, then put the AUD price IDs in `.env`.
 
 For production, add this webhook endpoint in Stripe:
 

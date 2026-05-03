@@ -40,17 +40,17 @@ const MIME_TYPES = {
 const plans = {
   Essential: {
     label: "Essential",
-    priceEnv: "STRIPE_PRICE_ESSENTIAL",
-    fallbackAmount: "$149 / month"
+    priceEnv: "STRIPE_PRICE_ESSENTIAL_AUD",
+    fallbackAmount: "A$149 / month"
   },
   Operations: {
     label: "Operations",
-    priceEnv: "STRIPE_PRICE_OPERATIONS",
-    fallbackAmount: "$329 / month"
+    priceEnv: "STRIPE_PRICE_OPERATIONS_AUD",
+    fallbackAmount: "A$329 / month"
   },
   "Multi-crew": {
     label: "Multi-crew",
-    priceEnv: "STRIPE_PRICE_MULTI_CREW",
+    priceEnv: "STRIPE_PRICE_MULTI_CREW_AUD",
     fallbackAmount: "Custom"
   }
 };

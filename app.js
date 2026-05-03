@@ -9,7 +9,7 @@ const workflowContent = {
     label: "Assisted quote",
     title: "Price, margin and options calculated",
     text: "TerrainDesk combines labor, materials, distance, target margin and seasonality to prepare a clear proposal with three offer levels.",
-    metrics: ["27.8% margin", "$8,740 proposed", "3 options"]
+    metrics: ["27.8% margin", "A$8,740 proposed", "3 options"]
   },
   crew: {
     label: "Intelligent dispatch",
@@ -36,7 +36,7 @@ const productContent = {
     metrics: [
       ["New request", "14"],
       ["Site visit", "8"],
-      ["Quote sent", "$42.8k"],
+      ["Quote sent", "A$42.8k"],
       ["Won this week", "6"]
     ]
   },
@@ -56,8 +56,8 @@ const productContent = {
     title: "Margins, deposits and invoices without the Friday-night cleanup",
     text: "See quote margin before approval, take deposits, trigger invoices after field sign-off and sync clean records to accounting.",
     metrics: [
-      ["Open invoices", "$18.4k"],
-      ["Deposits held", "$7.2k"],
+      ["Open invoices", "A$18.4k"],
+      ["Deposits held", "A$7.2k"],
       ["Gross margin", "31.8%"],
       ["Late follow-ups", "4"]
     ]
@@ -174,7 +174,7 @@ const roiValue = document.querySelector("#roi-value");
 function formatMoney(value) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "AUD",
     maximumFractionDigits: 0
   }).format(value);
 }
@@ -308,7 +308,7 @@ document.querySelector("#approve-quote").addEventListener("click", (event) => {
   const button = event.currentTarget;
   const quote = button.closest(".quote-card");
   quote.querySelector("span").textContent = "Approved quote";
-  quote.querySelector("strong").textContent = "$8,740 signed";
+  quote.querySelector("strong").textContent = "A$8,740 signed";
   button.style.background = "#73b987";
   showToast("Quote approved. Deposit request and crew schedule are now queued.");
 });
