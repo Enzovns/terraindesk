@@ -58,6 +58,20 @@ function employeesList() {
   return Array.isArray(employees) && employees.length ? employees : ["Owner", "North employee", "South employee"];
 }
 
+function defaultServiceTemplates() {
+  return [
+    { service: "Lawn mow and edges", hours: 1.5, rate: 90, materials: 0, markup: 20 },
+    { service: "Garden cleanup and green waste removal", hours: 6, rate: 85, materials: 180, markup: 25 },
+    { service: "Mulch supply and install", hours: 8, rate: 85, materials: 520, markup: 28 },
+    { service: "Irrigation inspection and repair", hours: 3, rate: 95, materials: 160, markup: 25 }
+  ];
+}
+
+function serviceTemplates() {
+  const templates = state.automations.serviceTemplates;
+  return Array.isArray(templates) && templates.length ? templates : defaultServiceTemplates();
+}
+
 async function getConfig() {
   const response = await fetch("/api/config");
   const result = await response.json();
@@ -348,7 +362,12 @@ function renderCompany() {
   }
   const employeesInput = document.querySelector("#employees-form [name='employees']");
   if (employeesInput) employeesInput.value = employeesList().join("\n");
+  const templatesInput = document.querySelector("#templates-form [name='templates']");
+  if (templatesInput) {
+    templatesInput.value = serviceTemplates().map((item) => `${item.service} | ${item.hours} | ${item.rate} | ${item.materials} | ${item.markup}`).join("\n");
+  }
   renderEmployeeChoices();
+  renderServiceTemplates();
 }
 
 function renderEmployeeChoices() {
@@ -368,6 +387,26 @@ function formPayload(form) {
     payload[name] = Array.from(form.querySelectorAll(`input[type='checkbox'][name='${name}']:checked`)).map((input) => input.value).join(", ");
   });
   return payload;
+}
+
+function renderServiceTemplates() {
+  const select = document.querySelector("#service-template");
+  if (!select) return;
+  select.innerHTML = `<option value="">Custom quote</option>${serviceTemplates().map((template, index) => `<option value="${index}">${escapeHtml(template.service)}</option>`).join("")}`;
+}
+
+function parseTemplates(value) {
+  return String(value || "").split(/\r?\n/).map((line) => {
+    const [service, hours, rate, materials, markup] = line.split("|").map((part) => part.trim());
+    if (!service) return null;
+    return {
+      service,
+      hours: Number(hours || 1),
+      rate: Number(rate || company?.hourly_rate || 85),
+      materials: Number(materials || 0),
+      markup: Number(markup || 25)
+    };
+  }).filter(Boolean);
 }
 
 function renderAll() {
@@ -491,6 +530,30 @@ document.querySelector("#employees-form").addEventListener("submit", async (even
   } catch (error) {
     showToast(error.message);
   }
+});
+
+document.querySelector("#templates-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const templates = parseTemplates(new FormData(event.currentTarget).get("templates"));
+    const result = await workspaceAction({ action: "saveServiceTemplates", templates });
+    state.automations.serviceTemplates = result.templates;
+    renderCompany();
+    showToast("Service templates saved.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.querySelector("#service-template").addEventListener("change", (event) => {
+  const template = serviceTemplates()[Number(event.currentTarget.value)];
+  if (!template) return;
+  const form = document.querySelector("#quote-form");
+  form.service.value = template.service;
+  form.hours.value = template.hours;
+  form.rate.value = template.rate;
+  form.materials.value = template.materials;
+  form.markup.value = template.markup;
 });
 
 document.querySelector("#export-calendar").addEventListener("click", () => {
@@ -656,12 +719,14 @@ document.addEventListener("click", async (event) => {
     if (target.dataset.emailQuote) {
       const quote = state.quotes.find((item) => item.id === target.dataset.emailQuote);
       if (!quote) return;
+      const proposed = state.jobs.find((job) => job.quote_id === quote.id && ["Proposed", "Scheduled"].includes(job.status));
       await sendCustomerMessage({
         type: "quote",
         quoteId: quote.id,
         leadId: quote.lead_id,
         service: quote.service,
-        amount: quote.amount
+        amount: quote.amount,
+        day: proposed?.day
       });
       await supabaseClient.from("quotes").update({ status: "Sent" }).eq("id", quote.id);
       showToast("Quote email sent.");
