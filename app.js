@@ -281,6 +281,9 @@ document.querySelectorAll("[data-checkout-plan]").forEach((button) => {
 });
 
 async function startCheckout(plan) {
+  const checkoutButton = document.querySelector(`[data-checkout-plan="${plan}"]`);
+  const originalLabel = checkoutButton?.textContent;
+
   if (!hasBackend) {
     document.querySelector("#selected-plan").value = plan;
     document.querySelector("#demo-modal").showModal();
@@ -289,18 +292,29 @@ async function startCheckout(plan) {
   }
 
   try {
+    if (checkoutButton) {
+      checkoutButton.disabled = true;
+      checkoutButton.textContent = "Opening checkout...";
+    }
     const response = await fetch("/api/create-checkout-session", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ plan })
     });
-    const result = await response.json();
+    const contentType = response.headers.get("content-type") || "";
+    const result = contentType.includes("application/json")
+      ? await response.json()
+      : { error: await response.text() };
     if (!response.ok) {
       throw new Error(result.error || "Checkout could not be created.");
     }
     window.location.href = result.url;
   } catch (error) {
     showToast(error.message);
+    if (checkoutButton) {
+      checkoutButton.disabled = false;
+      checkoutButton.textContent = originalLabel;
+    }
   }
 }
 
