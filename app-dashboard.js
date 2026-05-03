@@ -74,6 +74,20 @@ async function sendCustomerMessage(payload) {
   return result;
 }
 
+async function workspaceAction(payload) {
+  const response = await fetch("/api/workspace-action", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${session.access_token}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Action failed.");
+  return result;
+}
+
 async function initSupabase() {
   const config = await getConfig();
   supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
@@ -212,6 +226,7 @@ function renderLeads() {
       <td class="row-actions">
         <button class="mini-btn" data-contact-lead="${lead.id}">Contacted</button>
         <button class="mini-btn" data-build-quote="${lead.id}">Quote</button>
+        <button class="mini-btn danger-action" data-delete-lead="${lead.id}">Delete</button>
       </td>
     </tr>
   `).join("") || `<tr><td colspan="6">No leads yet.</td></tr>`;
@@ -230,6 +245,7 @@ function renderQuotes() {
         <div class="card-actions">
           ${quote.status === "Sent" ? `<button class="mini-btn" data-accept-quote="${quote.id}">Accept quote</button>` : ""}
           <button class="mini-btn" data-email-quote="${quote.id}">Email quote</button>
+          <button class="mini-btn danger-action" data-delete-quote="${quote.id}">Delete</button>
         </div>
       </article>
     `;
@@ -311,6 +327,10 @@ function renderCompany() {
   document.querySelector(".app-topbar .eyebrow").textContent = company?.name || "TerrainDesk workspace";
   document.querySelector("#company-form [name='name']").value = company?.name || "";
   document.querySelector("#company-form [name='abn']").value = company?.abn || "";
+  const bookingInput = document.querySelector("#booking-link");
+  if (bookingInput && company?.id) {
+    bookingInput.value = `${window.location.origin}/book.html?company=${company.id}`;
+  }
 }
 
 function renderAll() {
@@ -344,29 +364,13 @@ function switchView(view) {
 }
 
 async function createLead(payload) {
-  const { error } = await supabaseClient.from("leads").insert({
-    company_id: profile.company_id,
-    ...payload,
-    status: "New"
-  });
-  if (error) throw error;
+  return workspaceAction({ action: "createLead", ...payload });
 }
 
 async function createQuote(payload) {
   if (!payload.leadId) throw new Error("Create a lead first.");
-  const base = Number(payload.hours) * Number(payload.rate) + Number(payload.materials);
-  const amount = Math.round(base * (1 + Number(payload.markup) / 100) * 1.1);
-  const { error } = await supabaseClient.from("quotes").insert({
-    company_id: profile.company_id,
-    lead_id: payload.leadId,
-    service: payload.service,
-    amount,
-    margin: Number(payload.markup),
-    status: "Sent"
-  });
-  if (error) throw error;
-  await supabaseClient.from("leads").update({ status: "Quoted" }).eq("id", payload.leadId);
-  return amount;
+  const result = await workspaceAction({ action: "createQuote", ...payload });
+  return result.amount;
 }
 
 document.querySelectorAll(".app-nav button").forEach((button) => {
@@ -421,6 +425,13 @@ document.querySelector("#sign-out").addEventListener("click", async () => {
   setLocked(true);
 });
 
+document.querySelector("#copy-booking-link").addEventListener("click", async () => {
+  const input = document.querySelector("#booking-link");
+  if (!input.value) return;
+  await navigator.clipboard.writeText(input.value);
+  showToast("Booking link copied.");
+});
+
 document.querySelectorAll("[data-action='new-lead']").forEach((button) => {
   button.addEventListener("click", () => document.querySelector("#lead-modal").showModal());
 });
@@ -462,9 +473,23 @@ document.addEventListener("click", async (event) => {
     }
 
     if (target.dataset.contactLead) {
-      await supabaseClient.from("leads").update({ status: "Contacted" }).eq("id", target.dataset.contactLead);
+      await workspaceAction({ action: "updateLead", leadId: target.dataset.contactLead, status: "Contacted" });
       await refresh();
       showToast("Lead marked contacted.");
+    }
+
+    if (target.dataset.deleteLead) {
+      if (!window.confirm("Delete this lead and related quotes, jobs and invoices?")) return;
+      await workspaceAction({ action: "deleteLead", leadId: target.dataset.deleteLead });
+      await refresh();
+      showToast("Lead deleted.");
+    }
+
+    if (target.dataset.deleteQuote) {
+      if (!window.confirm("Delete this quote and any job created from it?")) return;
+      await workspaceAction({ action: "deleteQuote", quoteId: target.dataset.deleteQuote });
+      await refresh();
+      showToast("Quote deleted.");
     }
 
     if (target.dataset.acceptQuote) {

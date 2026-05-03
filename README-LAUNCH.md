@@ -15,14 +15,20 @@
 - `/admin.html` is the private founder admin panel.
 - `/api/admin-customers`, `/api/admin-create-customer`, `/api/admin-update-customer` and `/api/send-workspace-link` power the admin panel through Supabase.
 - `/api/customer-message` sends authenticated client emails for quotes, invoices and payment reminders through Resend.
+- `/api/workspace-action` handles authenticated lead and quote creation/deletion through the Supabase service role.
+- `/book.html?company=COMPANY_ID` is the public request form a landscaper can share with their own customers.
+- `/api/public-lead` takes public booking form submissions and creates new leads in the landscaper workspace.
 
 ## Client workspace workflows
 
 The client app now supports the first paid-customer operating loop:
 
 - create leads
+- receive public booking requests as leads
 - mark leads contacted
+- delete leads and related records
 - create GST-aware AUD quotes
+- delete quotes
 - email quotes to clients
 - accept quotes and generate scheduled jobs
 - move jobs through scheduled, in progress, blocked and complete

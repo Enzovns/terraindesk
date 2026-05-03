@@ -405,6 +405,16 @@ textarea {
   opacity: 0.45;
 }
 
+.danger-action {
+  color: #7d3f25;
+  border-color: rgba(184, 111, 66, 0.28);
+}
+
+.muted-copy {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .kanban {
   grid-template-columns: repeat(4, 1fr);
 }

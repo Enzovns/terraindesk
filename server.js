@@ -361,6 +361,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/customer-message") {
       return await handleApiFile("api/customer-message.js", req, res);
     }
+    if (req.method === "POST" && url.pathname === "/api/workspace-action") {
+      return await handleApiFile("api/workspace-action.js", req, res);
+    }
+    if (req.method === "POST" && url.pathname === "/api/public-lead") {
+      return await handleApiFile("api/public-lead.js", req, res);
+    }
     if (req.method === "GET" && url.pathname === "/api/admin-customers") {
       return await handleApiFile("api/admin-customers.js", req, res);
     }
