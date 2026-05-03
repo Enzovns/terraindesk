@@ -29,6 +29,15 @@ function money(value) {
   }).format(Number(value || 0));
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
@@ -48,6 +57,20 @@ async function getConfig() {
   const response = await fetch("/api/config");
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Supabase config is missing.");
+  return result;
+}
+
+async function sendCustomerMessage(payload) {
+  const response = await fetch("/api/customer-message", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${session.access_token}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Message could not be sent.");
   return result;
 }
 
@@ -91,9 +114,7 @@ async function ensureProfile() {
   if (!profileRows.length) {
     const response = await fetch("/api/bootstrap-company", {
       method: "POST",
-      headers: {
-        authorization: `Bearer ${session.access_token}`
-      }
+      headers: { authorization: `Bearer ${session.access_token}` }
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not provision company.");
@@ -152,15 +173,30 @@ function renderMetrics() {
 
 function renderActions() {
   const actions = [
-    ...state.leads.filter((lead) => lead.status === "New").map((lead) => [`Call ${lead.name}`, `${lead.service} in ${lead.suburb}`, "Create quote"]),
-    ...state.quotes.filter((quote) => quote.status === "Sent").map((quote) => [`Follow up quote for ${leadById(quote.lead_id).name}`, `${money(quote.amount)} waiting approval`, "Mark accepted"]),
-    ...state.invoices.filter((invoice) => invoice.status !== "Paid").map((invoice) => [`Invoice ${String(invoice.id).slice(0, 8)}`, `${money(invoice.amount)} due ${invoice.due || "soon"}`, "Remind"])
+    ...state.leads.filter((lead) => lead.status === "New").map((lead) => ({
+      title: `Call ${lead.name}`,
+      detail: `${lead.service} in ${lead.suburb}`,
+      action: "Create quote",
+      attrs: `data-build-quote="${lead.id}"`
+    })),
+    ...state.quotes.filter((quote) => quote.status === "Sent").map((quote) => ({
+      title: `Follow up quote for ${leadById(quote.lead_id).name}`,
+      detail: `${money(quote.amount)} waiting approval`,
+      action: "Email quote",
+      attrs: `data-email-quote="${quote.id}"`
+    })),
+    ...state.invoices.filter((invoice) => invoice.status !== "Paid").map((invoice) => ({
+      title: `Invoice ${String(invoice.id).slice(0, 8)}`,
+      detail: `${money(invoice.amount)} due ${invoice.due || "soon"}`,
+      action: "Remind",
+      attrs: `data-remind-invoice="${invoice.id}"`
+    }))
   ].slice(0, 6);
 
-  document.querySelector("#action-list").innerHTML = actions.map(([title, detail, action]) => `
+  document.querySelector("#action-list").innerHTML = actions.map(({ title, detail, action, attrs }) => `
     <div class="action-item">
-      <div><strong>${title}</strong><p>${detail}</p></div>
-      <button class="mini-btn">${action}</button>
+      <div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(detail)}</p></div>
+      <button class="mini-btn" ${attrs}>${escapeHtml(action)}</button>
     </div>
   `).join("") || `<div class="action-item"><strong>Nothing urgent</strong><p>Your operation is clear for now.</p></div>`;
 }
@@ -168,15 +204,18 @@ function renderActions() {
 function renderLeads() {
   document.querySelector("#leads-table").innerHTML = state.leads.map((lead) => `
     <tr>
-      <td><strong>${lead.name}</strong><br><span>${lead.email || ""}</span></td>
-      <td>${lead.suburb || ""}</td>
-      <td>${lead.service || ""}</td>
-      <td><span class="pill ${lead.urgency === "This week" ? "danger-pill" : ""}">${lead.urgency || "Flexible"}</span></td>
-      <td><span class="pill">${lead.status || "New"}</span></td>
-      <td><button class="mini-btn" data-build-quote="${lead.id}">Quote</button></td>
+      <td><strong>${escapeHtml(lead.name)}</strong><br><span>${escapeHtml(lead.email || "")}</span></td>
+      <td>${escapeHtml(lead.suburb || "")}</td>
+      <td>${escapeHtml(lead.service || "")}</td>
+      <td><span class="pill ${lead.urgency === "This week" ? "danger-pill" : ""}">${escapeHtml(lead.urgency || "Flexible")}</span></td>
+      <td><span class="pill">${escapeHtml(lead.status || "New")}</span></td>
+      <td class="row-actions">
+        <button class="mini-btn" data-contact-lead="${lead.id}">Contacted</button>
+        <button class="mini-btn" data-build-quote="${lead.id}">Quote</button>
+      </td>
     </tr>
-  `).join("");
-  document.querySelector("#quote-lead").innerHTML = state.leads.map((lead) => `<option value="${lead.id}">${lead.name} · ${lead.suburb || "No suburb"}</option>`).join("");
+  `).join("") || `<tr><td colspan="6">No leads yet.</td></tr>`;
+  document.querySelector("#quote-lead").innerHTML = state.leads.map((lead) => `<option value="${lead.id}">${escapeHtml(lead.name)} - ${escapeHtml(lead.suburb || "No suburb")}</option>`).join("");
 }
 
 function renderQuotes() {
@@ -184,10 +223,10 @@ function renderQuotes() {
     const lead = leadById(quote.lead_id);
     return `
       <article class="card">
-        <span>${lead.name} · ${lead.suburb || ""}</span>
-        <h3>${quote.service}</h3>
+        <span>${escapeHtml(lead.name)} - ${escapeHtml(lead.suburb || "")}</span>
+        <h3>${escapeHtml(quote.service)}</h3>
         <strong>${money(quote.amount)}</strong>
-        <p>Margin ${quote.margin || 0}% · ${quote.status}</p>
+        <p>Margin ${escapeHtml(quote.margin || 0)}% - ${escapeHtml(quote.status)}</p>
         <div class="card-actions">
           ${quote.status === "Sent" ? `<button class="mini-btn" data-accept-quote="${quote.id}">Accept quote</button>` : ""}
           <button class="mini-btn" data-email-quote="${quote.id}">Email quote</button>
@@ -206,16 +245,17 @@ function renderJobs() {
         const lead = leadById(job.lead_id);
         return `
           <article class="job-card">
-            <strong>${job.service}</strong>
-            <p>${lead.name} · ${lead.suburb || ""}<br>${job.crew || "North crew"} · ${job.day || "Tue"}</p>
+            <strong>${escapeHtml(job.service)}</strong>
+            <p>${escapeHtml(lead.name)} - ${escapeHtml(lead.suburb || "")}<br>${escapeHtml(job.crew || "North crew")} - ${escapeHtml(job.day || "Tue")}</p>
             <div class="card-actions">
               ${job.status === "Scheduled" ? `<button class="mini-btn" data-start-job="${job.id}">Start</button>` : ""}
               ${job.status === "In progress" ? `<button class="mini-btn" data-complete-job="${job.id}">Complete</button>` : ""}
               ${job.status === "Complete" ? `<button class="mini-btn" data-invoice-job="${job.id}">Invoice</button>` : ""}
+              ${job.status !== "Blocked" && job.status !== "Complete" ? `<button class="mini-btn" data-block-job="${job.id}">Block</button>` : ""}
             </div>
           </article>
         `;
-      }).join("")}
+      }).join("") || `<p class="empty-state">No jobs.</p>`}
     </section>
   `).join("");
 }
@@ -225,7 +265,7 @@ function renderSchedule() {
   document.querySelector("#schedule-grid").innerHTML = days.map((day) => `
     <section class="schedule-day">
       <h3>${day}</h3>
-      ${state.jobs.filter((job) => job.day === day).map((job) => `<div class="job-card"><strong>${job.service}</strong><p>${leadById(job.lead_id).suburb || ""}<br>${job.crew || ""}</p></div>`).join("")}
+      ${state.jobs.filter((job) => job.day === day).map((job) => `<div class="job-card"><strong>${escapeHtml(job.service)}</strong><p>${escapeHtml(leadById(job.lead_id).suburb || "")}<br>${escapeHtml(job.crew || "")}</p></div>`).join("") || `<p class="empty-state">Open capacity.</p>`}
     </section>
   `).join("");
 }
@@ -233,10 +273,10 @@ function renderSchedule() {
 function renderCrew() {
   document.querySelector("#crew-jobs").innerHTML = state.jobs.filter((job) => job.status !== "Complete").map((job) => `
     <article class="crew-job">
-      <span>${job.day || "Tue"} · ${job.crew || "North crew"}</span>
-      <h3>${job.service}</h3>
-      <p>${leadById(job.lead_id).name} · ${leadById(job.lead_id).suburb || ""}</p>
-      ${(job.checklist || []).map((item) => `<label><input type="checkbox"> ${item}</label>`).join("")}
+      <span>${escapeHtml(job.day || "Tue")} - ${escapeHtml(job.crew || "North crew")}</span>
+      <h3>${escapeHtml(job.service)}</h3>
+      <p>${escapeHtml(leadById(job.lead_id).name)} - ${escapeHtml(leadById(job.lead_id).suburb || "")}</p>
+      ${(job.checklist || []).map((item) => `<label><input type="checkbox"> ${escapeHtml(item)}</label>`).join("")}
       <button class="primary-btn" data-complete-job="${job.id}">Finish job</button>
     </article>
   `).join("") || `<p>No active route.</p>`;
@@ -246,20 +286,23 @@ function renderInvoices() {
   document.querySelector("#invoices-table").innerHTML = state.invoices.map((invoice) => `
     <tr>
       <td><strong>${String(invoice.id).slice(0, 8)}</strong></td>
-      <td>${leadById(invoice.lead_id).name}</td>
+      <td>${escapeHtml(leadById(invoice.lead_id).name)}</td>
       <td>${money(invoice.amount)}</td>
-      <td>${invoice.due || ""}</td>
-      <td><span class="pill ${invoice.status === "Paid" ? "success-pill" : invoice.status === "Overdue" ? "danger-pill" : ""}">${invoice.status}</span></td>
-      <td>${invoice.status !== "Paid" ? `<button class="mini-btn" data-pay-invoice="${invoice.id}">Mark paid</button>` : ""}</td>
+      <td>${escapeHtml(invoice.due || "")}</td>
+      <td><span class="pill ${invoice.status === "Paid" ? "success-pill" : invoice.status === "Overdue" ? "danger-pill" : ""}">${escapeHtml(invoice.status)}</span></td>
+      <td class="row-actions">
+        <button class="mini-btn" data-email-invoice="${invoice.id}">Send</button>
+        ${invoice.status !== "Paid" ? `<button class="mini-btn" data-remind-invoice="${invoice.id}">Remind</button><button class="mini-btn" data-pay-invoice="${invoice.id}">Mark paid</button>` : ""}
+      </td>
     </tr>
-  `).join("");
+  `).join("") || `<tr><td colspan="6">No invoices yet.</td></tr>`;
 }
 
 function renderAutomations() {
   document.querySelector("#automation-list").innerHTML = automations.map(([key, title, description]) => `
     <article class="automation-rule">
-      <div><strong>${title}</strong><p>${description}</p></div>
-      <button class="switch ${state.automations[key] ? "active" : ""}" data-automation="${key}" aria-label="${title}"></button>
+      <div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(description)}</p></div>
+      <button class="switch ${state.automations[key] ? "active" : ""}" data-automation="${key}" aria-label="${escapeHtml(title)}"></button>
     </article>
   `).join("");
 }
@@ -310,6 +353,7 @@ async function createLead(payload) {
 }
 
 async function createQuote(payload) {
+  if (!payload.leadId) throw new Error("Create a lead first.");
   const base = Number(payload.hours) * Number(payload.rate) + Number(payload.materials);
   const amount = Math.round(base * (1 + Number(payload.markup) / 100) * 1.1);
   const { error } = await supabaseClient.from("quotes").insert({
@@ -329,6 +373,10 @@ document.querySelectorAll(".app-nav button").forEach((button) => {
   button.addEventListener("click", () => switchView(button.dataset.view));
 });
 
+document.querySelectorAll("[data-action='new-quote']").forEach((button) => {
+  button.addEventListener("click", () => switchView("quotes"));
+});
+
 document.querySelector("#auth-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -339,7 +387,7 @@ document.querySelector("#auth-form").addEventListener("submit", async (event) =>
       ? await supabaseClient.auth.signUp({ email: payload.email, password: payload.password })
       : await supabaseClient.auth.signInWithPassword({ email: payload.email, password: payload.password });
     if (result.error) throw result.error;
-    showToast(submitter === "signup" ? "Account created. Check your inbox and spam folder for the Supabase confirmation email." : "Signed in.");
+    showToast(submitter === "signup" ? "Account created. Check your inbox and spam folder for the confirmation email." : "Signed in.");
   } catch (error) {
     showToast(error.message);
   }
@@ -360,10 +408,7 @@ document.querySelector("#resend-confirmation").addEventListener("click", async (
   }
 
   try {
-    const { error } = await supabaseClient.auth.resend({
-      type: "signup",
-      email
-    });
+    const { error } = await supabaseClient.auth.resend({ type: "signup", email });
     if (error) throw error;
     showToast("Confirmation email requested again. Check inbox and spam.");
   } catch (error) {
@@ -389,7 +434,7 @@ document.querySelector("#lead-form").addEventListener("submit", async (event) =>
     event.currentTarget.reset();
     document.querySelector("#lead-modal").close();
     await refresh();
-    showToast("Lead created in Supabase.");
+    showToast("Lead created.");
   } catch (error) {
     showToast(error.message);
   }
@@ -416,6 +461,12 @@ document.addEventListener("click", async (event) => {
       document.querySelector("#quote-lead").value = target.dataset.buildQuote;
     }
 
+    if (target.dataset.contactLead) {
+      await supabaseClient.from("leads").update({ status: "Contacted" }).eq("id", target.dataset.contactLead);
+      await refresh();
+      showToast("Lead marked contacted.");
+    }
+
     if (target.dataset.acceptQuote) {
       const quote = state.quotes.find((item) => item.id === target.dataset.acceptQuote);
       if (!quote) return;
@@ -439,6 +490,12 @@ document.addEventListener("click", async (event) => {
       await supabaseClient.from("jobs").update({ status: "In progress" }).eq("id", target.dataset.startJob);
       await refresh();
       showToast("Job started.");
+    }
+
+    if (target.dataset.blockJob) {
+      await supabaseClient.from("jobs").update({ status: "Blocked" }).eq("id", target.dataset.blockJob);
+      await refresh();
+      showToast("Job blocked.");
     }
 
     if (target.dataset.completeJob) {
@@ -467,6 +524,31 @@ document.addEventListener("click", async (event) => {
       showToast("Invoice marked paid.");
     }
 
+    if (target.dataset.emailQuote) {
+      const quote = state.quotes.find((item) => item.id === target.dataset.emailQuote);
+      if (!quote) return;
+      await sendCustomerMessage({
+        type: "quote",
+        leadId: quote.lead_id,
+        service: quote.service,
+        amount: quote.amount
+      });
+      await supabaseClient.from("quotes").update({ status: "Sent" }).eq("id", quote.id);
+      showToast("Quote email sent.");
+    }
+
+    if (target.dataset.emailInvoice || target.dataset.remindInvoice) {
+      const invoice = state.invoices.find((item) => item.id === (target.dataset.emailInvoice || target.dataset.remindInvoice));
+      if (!invoice) return;
+      await sendCustomerMessage({
+        type: target.dataset.remindInvoice ? "reminder" : "invoice",
+        leadId: invoice.lead_id,
+        amount: invoice.amount,
+        due: invoice.due
+      });
+      showToast(target.dataset.remindInvoice ? "Invoice reminder sent." : "Invoice email sent.");
+    }
+
     if (target.dataset.automation) {
       state.automations[target.dataset.automation] = !state.automations[target.dataset.automation];
       const { error } = await supabaseClient.from("automation_settings").upsert({
@@ -477,10 +559,6 @@ document.addEventListener("click", async (event) => {
       if (error) throw error;
       renderAutomations();
     }
-
-    if (target.dataset.emailQuote) {
-      showToast("Quote email queued. Resend template comes next.");
-    }
   } catch (error) {
     showToast(error.message);
   }
@@ -489,10 +567,10 @@ document.addEventListener("click", async (event) => {
 document.querySelector("[data-seed]").addEventListener("click", async () => {
   if (!profile) return;
   try {
-    await createLead({ name: "Amelia Hart", email: "amelia@example.com", phone: "+61 412 845 102", suburb: "Fremantle", service: "Garden cleanup", urgency: "This week", status: "New" });
-    await createLead({ name: "Marcus Venn", email: "marcus@example.com", phone: "+61 421 330 994", suburb: "Subiaco", service: "Maintenance contract", urgency: "Next 2 weeks", status: "New" });
+    await createLead({ name: "Amelia Hart", email: "amelia@example.com", phone: "+61 412 845 102", suburb: "Fremantle", service: "Garden cleanup", urgency: "This week" });
+    await createLead({ name: "Marcus Venn", email: "marcus@example.com", phone: "+61 421 330 994", suburb: "Subiaco", service: "Maintenance contract", urgency: "Next 2 weeks" });
     await refresh();
-    showToast("Demo leads added to Supabase.");
+    showToast("Demo leads added.");
   } catch (error) {
     showToast(error.message);
   }

@@ -314,6 +314,11 @@ async function handleStripeWebhook(req, res) {
   sendJson(res, 200, { received: true });
 }
 
+async function handleApiFile(route, req, res) {
+  const handler = require(path.join(ROOT, route));
+  return handler(req, res);
+}
+
 function serveStatic(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const requestedPath = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);
@@ -352,6 +357,21 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && url.pathname === "/api/stripe-webhook") {
       return await handleStripeWebhook(req, res);
+    }
+    if (req.method === "POST" && url.pathname === "/api/customer-message") {
+      return await handleApiFile("api/customer-message.js", req, res);
+    }
+    if (req.method === "GET" && url.pathname === "/api/admin-customers") {
+      return await handleApiFile("api/admin-customers.js", req, res);
+    }
+    if (req.method === "POST" && url.pathname === "/api/admin-create-customer") {
+      return await handleApiFile("api/admin-create-customer.js", req, res);
+    }
+    if (req.method === "POST" && url.pathname === "/api/admin-update-customer") {
+      return await handleApiFile("api/admin-update-customer.js", req, res);
+    }
+    if (req.method === "POST" && url.pathname === "/api/send-workspace-link") {
+      return await handleApiFile("api/send-workspace-link.js", req, res);
     }
     if (req.method === "GET") {
       return serveStatic(req, res);

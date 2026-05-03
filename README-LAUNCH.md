@@ -14,6 +14,23 @@
 - `/api/update-company` updates company settings using the Supabase service role.
 - `/admin.html` is the private founder admin panel.
 - `/api/admin-customers`, `/api/admin-create-customer`, `/api/admin-update-customer` and `/api/send-workspace-link` power the admin panel through Supabase.
+- `/api/customer-message` sends authenticated client emails for quotes, invoices and payment reminders through Resend.
+
+## Client workspace workflows
+
+The client app now supports the first paid-customer operating loop:
+
+- create leads
+- mark leads contacted
+- create GST-aware AUD quotes
+- email quotes to clients
+- accept quotes and generate scheduled jobs
+- move jobs through scheduled, in progress, blocked and complete
+- generate invoices from completed jobs
+- email invoices and payment reminders
+- mark invoices paid
+- toggle automation rules
+- save company settings
 
 ## Required Supabase setup
 
