@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerrainDesk | Client onboarding</title>
+  <meta name="description" content="TerrainDesk paid client onboarding portal.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="client-page">
+  <div class="grain" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="TerrainDesk home">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5c6.8-.4 11-4.6 12.5-12.5 3.2 7.7.8 14.6-6.7 17.2C8.1 23.1 5.4 21 5 17.5Z"/><path d="M5.3 17.4C8.6 14.9 12 11.8 15.5 8"/></svg>
+      </span>
+      TerrainDesk
+    </a>
+  </header>
+
+  <main class="client-portal">
+    <section class="client-hero">
+      <div>
+        <p class="eyebrow">Payment received</p>
+        <h1>Your TerrainDesk workspace starts here.</h1>
+        <p class="hero-text">Complete this onboarding form so the implementation team can build your first workflow map, import priorities and launch checklist.</p>
+        <div class="proof-row">
+          <span><strong id="client-plan">Operations</strong> selected plan</span>
+          <span><strong>24h</strong> first setup response</span>
+          <span><strong>7 days</strong> typical pilot launch</span>
+        </div>
+      </div>
+      <form class="client-form" id="client-intake">
+        <label>
+          Company name
+          <input name="company" placeholder="Green Ridge Landscapes" required>
+        </label>
+        <label>
+          Contact email
+          <input name="email" type="email" placeholder="owner@greenridge.com" required>
+        </label>
+        <label>
+          Phone
+          <input name="phone" placeholder="+1 (312) 847-1928">
+        </label>
+        <label>
+          Main service line
+          <select name="service">
+            <option>Maintenance contracts</option>
+            <option>Design and build</option>
+            <option>Irrigation and drainage</option>
+            <option>Commercial grounds</option>
+          </select>
+        </label>
+        <label>
+          First operational goal
+          <textarea name="goal" placeholder="Example: reduce quote turnaround from 3 days to same-day." required></textarea>
+        </label>
+        <label>
+          Current tools
+          <textarea name="tools" placeholder="QuickBooks, Google Calendar, spreadsheets, Jobber, WhatsApp..."></textarea>
+        </label>
+        <button class="primary-action" type="submit">Send onboarding brief</button>
+      </form>
+    </section>
+
+    <section class="client-next">
+      <article>
+        <span class="preview-label">Step 01</span>
+        <h3>Workflow map</h3>
+        <p>We turn your sales, scheduling, field and invoice flow into the first TerrainDesk board.</p>
+      </article>
+      <article>
+        <span class="preview-label">Step 02</span>
+        <h3>Data import</h3>
+        <p>Clients, recurring jobs, price book and crews are imported in a controlled first pass.</p>
+      </article>
+      <article>
+        <span class="preview-label">Step 03</span>
+        <h3>Pilot launch</h3>
+        <p>Your team starts with one crew, one route and one quote workflow before expanding.</p>
+      </article>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="client.js"></script>
+</body>
+</html>

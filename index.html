@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerrainDesk | SaaS for landscapers</title>
+  <meta name="description" content="TerrainDesk automates estimates, schedules, job proof, invoices and follow-ups for landscaping companies.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="TerrainDesk home">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5c6.8-.4 11-4.6 12.5-12.5 3.2 7.7.8 14.6-6.7 17.2C8.1 23.1 5.4 21 5 17.5Z"/><path d="M5.3 17.4C8.6 14.9 12 11.8 15.5 8"/></svg>
+      </span>
+      TerrainDesk
+    </a>
+    <nav class="desktop-nav" aria-label="Main navigation">
+      <a href="#systeme">System</a>
+      <a href="#automations">Automations</a>
+      <a href="#terrain">Field</a>
+      <a href="#prix">Pricing</a>
+    </nav>
+    <button class="nav-cta" type="button" data-open-demo data-plan="Operations">See the demo</button>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Operations OS for landscaping companies</p>
+        <h1>Quotes, crews, jobs and cashflow in one operating cockpit.</h1>
+        <p class="hero-text">TerrainDesk turns site photos, client requests and crew constraints into clean estimates, optimized schedules, work orders, invoices and automated follow-ups.</p>
+        <div class="hero-actions">
+          <button class="primary-action" type="button" data-open-demo data-plan="Operations">
+            <span>Book a demo</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13"/><path d="m13 6 6 6-6 6"/></svg>
+          </button>
+          <a class="secondary-action" href="#systeme">Explore the cockpit</a>
+        </div>
+        <div class="proof-row" aria-label="Customer indicators">
+          <span><strong>18.6h</strong> saved per week</span>
+          <span><strong>31.4%</strong> faster quote approvals</span>
+          <span><strong>7 min</strong> to send a proposal</span>
+        </div>
+      </div>
+
+      <div class="hero-stage" aria-label="TerrainDesk software preview">
+        <div class="field-photo">
+          <img src="assets/field-top.webp" alt="Planting composition used as a job reference">
+          <div class="photo-tag">Before / after synced</div>
+        </div>
+        <div class="ops-panel">
+          <div class="panel-head">
+            <div>
+              <span class="status-dot"></span>
+              Active job
+            </div>
+            <strong>Oak Ridge Estate</strong>
+          </div>
+          <div class="route-card">
+            <span>North crew</span>
+            <strong>08:10 - 15:45</strong>
+            <small>3 visits, 42 km, depot included</small>
+          </div>
+          <div class="quote-card">
+            <div>
+              <span>AI quote</span>
+              <strong>$8,740</strong>
+            </div>
+            <button type="button" class="icon-btn" id="approve-quote" aria-label="Approve the quote">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+            </button>
+          </div>
+          <div class="task-list" aria-label="Today's tasks">
+            <button type="button"><span></span> East side drainage <b>92%</b></button>
+            <button type="button"><span></span> Mulch premium <b>auto</b></button>
+            <button type="button"><span></span> Invoice follow-up <b>17:30</b></button>
+          </div>
+        </div>
+        <div class="command-card">
+          <span>Assistant</span>
+          <p id="typed-command">Prepare an annual maintenance quote for 4 zones...</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="workflow-band" id="systeme">
+      <div class="section-kicker">A to Z, no double entry</div>
+      <div class="workflow-grid">
+        <article class="workflow-copy">
+          <h2>The system tracks the job before the crew even arrives.</h2>
+          <p>Every request becomes an intelligent job file: area, photos, access, materials, availability, margin, client SMS and documents all stay connected in the same workflow.</p>
+        </article>
+        <div class="workflow-steps">
+          <button class="step active" data-step="lead">
+            <span>01</span>
+            Client request
+          </button>
+          <button class="step" data-step="quote">
+            <span>02</span>
+            Quote & margin
+          </button>
+          <button class="step" data-step="crew">
+            <span>03</span>
+            Crew schedule
+          </button>
+          <button class="step" data-step="invoice">
+            <span>04</span>
+            Invoice & follow-up
+          </button>
+        </div>
+        <article class="workflow-preview" id="workflow-preview">
+          <span class="preview-label">Automatic capture</span>
+          <h3>Lead qualified in 2 minutes</h3>
+          <p>The client form detects the service type, asks for the right photos, estimates the zone and creates a call task with a tailored script.</p>
+          <div class="preview-metrics">
+            <span><b>84.2%</b> complete</span>
+            <span><b>12</b> fields skipped</span>
+            <span><b>1</b> priority call</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="automation-section" id="automations">
+      <div class="section-title">
+        <p class="eyebrow">Concrete automations</p>
+        <h2>The work that eats your evenings moves into the background.</h2>
+      </div>
+      <div class="automation-grid">
+        <article class="feature large" tabindex="0">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M7 4v6"/><path d="M17 4v6"/><rect x="5" y="7" width="14" height="13" rx="2"/><path d="M8 14h3l2-3 3 5"/></svg>
+          </div>
+          <h3>Scheduling that protects margin</h3>
+          <p>The engine considers weather, travel time, crew skills, stock and target margin before suggesting a date.</p>
+        </article>
+        <article class="feature" tabindex="0">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h3"/></svg>
+          </div>
+          <h3>Quotes written for clients</h3>
+          <p>Annotated photos, options, deposits, signature, terms and a calm follow-up when nothing moves.</p>
+        </article>
+        <article class="feature" tabindex="0">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s7-4.4 7-10a7 7 0 0 0-14 0c0 5.6 7 10 7 10Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          </div>
+          <h3>Field routes</h3>
+          <p>Every crew lead receives the address, photos, work order and material list on mobile.</p>
+        </article>
+        <article class="feature wide" tabindex="0">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="m4 8 8 5 8-5"/><path d="M8 17h8"/></svg>
+          </div>
+          <h3>Follow-ups, reviews and recurring contracts</h3>
+          <p>After photo approval, TerrainDesk sends the invoice, proposes recurring maintenance and triggers a personalized review request.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="field-section" id="terrain">
+      <div class="device">
+        <div class="device-top"></div>
+        <div class="job-card">
+          <img src="assets/field-bottom.webp" alt="Planting reference for a field work order">
+          <div>
+            <span>Crew mobile</span>
+            <h3>Living work order</h3>
+            <p>Photos, checklists, voice notes, time spent, materials used and client approval.</p>
+          </div>
+        </div>
+        <button type="button" class="check-row done"><span></span> Irrigation tested</button>
+        <button type="button" class="check-row"><span></span> After photos sent</button>
+        <button type="button" class="check-row"><span></span> Invoice ready</button>
+      </div>
+      <div class="field-copy">
+        <p class="eyebrow">For the field, not empty spreadsheets</p>
+        <h2>Crews see exactly what to do, the office sees exactly where work is blocked.</h2>
+        <p>The mobile experience is simple enough for fast site work, but complete enough to prevent clarification calls, missing materials and end-of-job disputes.</p>
+        <div class="split-metrics">
+          <span><b>4.7</b> average photos per job</span>
+          <span><b>23.8%</b> fewer office back-and-forths</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="product-section" id="product">
+      <div class="section-title">
+        <p class="eyebrow">Inside the platform</p>
+        <h2>One workspace for sales, production, field teams and finance.</h2>
+      </div>
+      <div class="product-shell">
+        <div class="product-tabs" role="tablist" aria-label="Product modules">
+          <button type="button" class="product-tab active" role="tab" aria-selected="true" data-product="sales">Sales pipeline</button>
+          <button type="button" class="product-tab" role="tab" aria-selected="false" data-product="operations">Operations board</button>
+          <button type="button" class="product-tab" role="tab" aria-selected="false" data-product="finance">Finance desk</button>
+        </div>
+        <article class="product-preview" id="product-preview">
+          <div>
+            <span class="preview-label">Sales pipeline</span>
+            <h3>From request to signed quote</h3>
+            <p>Capture leads, score urgency, create clean proposals, collect deposits and schedule the first visit without copying data between tools.</p>
+          </div>
+          <div class="module-board">
+            <div><span>New request</span><b>14</b></div>
+            <div><span>Site visit</span><b>8</b></div>
+            <div><span>Quote sent</span><b>$42.8k</b></div>
+            <div><span>Won this week</span><b>6</b></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="roi-section" id="demo">
+      <div>
+        <p class="eyebrow">Quick estimate</p>
+        <h2>Calculate what automation gives back every month.</h2>
+      </div>
+      <form class="roi-calculator" aria-label="Monthly savings calculator">
+        <label>
+          Jobs per month
+          <input id="jobs" type="range" min="12" max="180" value="64">
+          <span id="jobs-value">64</span>
+        </label>
+        <label>
+          Admin hours per job
+          <input id="hours" type="range" min="1" max="7" value="3">
+          <span id="hours-value">3</span>
+        </label>
+        <label>
+          Admin hourly cost
+          <input id="rate" type="range" min="24" max="95" value="48">
+          <span id="rate-value">$48</span>
+        </label>
+        <output class="roi-output">
+          <span>Estimated monthly savings</span>
+          <strong id="roi-value">$6,451</strong>
+          <button type="button" data-open-demo data-plan="Operations">Turn this into a plan</button>
+        </output>
+      </form>
+    </section>
+
+    <section class="integrations-section">
+      <div class="section-title">
+        <p class="eyebrow">Connected stack</p>
+        <h2>Fits around the tools landscapers already use.</h2>
+      </div>
+      <div class="integration-grid">
+        <button type="button" class="integration">QuickBooks <span>Accounting sync</span></button>
+        <button type="button" class="integration">Google Calendar <span>Crew schedule</span></button>
+        <button type="button" class="integration">Stripe <span>Deposits and payments</span></button>
+        <button type="button" class="integration">Twilio <span>SMS reminders</span></button>
+        <button type="button" class="integration">Zapier <span>Custom workflows</span></button>
+        <button type="button" class="integration">Google Drive <span>Photo archive</span></button>
+      </div>
+    </section>
+
+    <section class="pricing" id="prix">
+      <div class="section-title">
+        <p class="eyebrow">Simple pricing</p>
+        <h2>Start with the full workflow, add AI when the crew is ready.</h2>
+      </div>
+      <div class="price-row">
+        <article class="price-panel">
+          <span>Essential</span>
+          <h3>$149 <small>/ month</small></h3>
+          <p>CRM, quotes, scheduling, work orders and invoicing for small crews.</p>
+          <button type="button" data-checkout-plan="Essential">Start Essential</button>
+        </article>
+        <article class="price-panel featured">
+          <span>Operations</span>
+          <h3>$329 <small>/ month</small></h3>
+          <p>Automations, crew mobile, route optimization, client portal and margin reporting.</p>
+          <button type="button" data-checkout-plan="Operations">Start Operations</button>
+        </article>
+        <article class="price-panel">
+          <span>Multi-crew</span>
+          <h3>Custom</h3>
+          <p>Advanced permissions, multiple depots, accounting integrations and migration support.</p>
+          <button type="button" data-open-demo data-plan="Multi-crew">Talk to an expert</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="faq-section">
+      <div class="section-title">
+        <p class="eyebrow">Questions teams ask first</p>
+        <h2>Designed for messy real-world landscaping operations.</h2>
+      </div>
+      <div class="faq-list">
+        <details open>
+          <summary>Can crews use it from their phones?</summary>
+          <p>Yes. Crew members get a simple mobile work order with photos, route, checklist, notes, material list and client approval.</p>
+        </details>
+        <details>
+          <summary>Does it replace our accounting system?</summary>
+          <p>No. TerrainDesk manages operations and pushes clean invoice and payment data into your accounting tool.</p>
+        </details>
+        <details>
+          <summary>Can we start without importing everything?</summary>
+          <p>Yes. Most teams begin with new leads and active jobs, then import clients, recurring contracts and price books after the first week.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <strong>TerrainDesk</strong>
+    <span>The software that keeps landscapers outside, not buried in admin.</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog class="demo-modal" id="demo-modal">
+    <form method="dialog" class="modal-card" id="demo-form">
+      <button class="modal-close" type="button" data-close-demo aria-label="Close demo form">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>
+      </button>
+      <span class="preview-label">Demo request</span>
+      <h2>Build your landscaping workflow map.</h2>
+      <p>Tell us the shape of your operation and TerrainDesk will prepare a focused demo path.</p>
+      <label>
+        Work email
+        <input name="email" type="email" placeholder="alex@greenridge.com" required>
+        <small>Use a business email so the sample workspace can be named correctly.</small>
+      </label>
+      <label>
+        Company size
+        <select name="size">
+          <option>1-3 crew members</option>
+          <option>4-12 crew members</option>
+          <option>13-40 crew members</option>
+          <option>40+ crew members</option>
+        </select>
+      </label>
+      <label>
+        Plan
+        <input name="plan" id="selected-plan" value="Operations">
+      </label>
+      <button class="primary-action" type="submit">Create demo request</button>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
