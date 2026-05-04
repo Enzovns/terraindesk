@@ -134,6 +134,18 @@ function permissionsList() {
   return Array.isArray(permissions) && permissions.length ? permissions : ["Owner: all access", "Manager: sales, jobs, invoices", "Employee: crew mobile, schedule"];
 }
 
+function onboardingData() {
+  return state.automations.onboarding || {};
+}
+
+function jobMeta() {
+  return state.automations.jobMeta || {};
+}
+
+function metaForJob(jobId) {
+  return jobMeta()[jobId] || { note: "", proof: [] };
+}
+
 async function getConfig() {
   const response = await fetch("/api/config");
   const result = await response.json();
@@ -273,6 +285,39 @@ function renderPlan() {
   `;
 }
 
+function renderOnboarding() {
+  const data = onboardingData();
+  const bookingReady = Boolean(company?.id);
+  const employeesReady = employeesList().length > 0;
+  const templatesReady = serviceTemplates().length > 0;
+  const materialsReady = materialsList().length > 0;
+  const quoteReady = state.quotes.length > 0;
+  const invoiceReady = state.invoices.length > 0;
+  const items = [
+    ["Company details", Boolean(company?.name && company?.abn), "Add company name and ABN in Settings."],
+    ["Public booking link", bookingReady, "Copy the client portal link to the landscaper's website and Google profile."],
+    ["Employees", employeesReady, "Add the team so jobs can be assigned from quote creation."],
+    ["Service templates", templatesReady, "Save common jobs to quote faster and keep pricing consistent."],
+    ["Materials price book", materialsReady, "Add stock and reorder levels before the first active jobs."],
+    ["First quote sent", quoteReady, "Create and email a quote to test the customer approval flow."],
+    ["Invoice flow tested", invoiceReady, "Complete a job, generate an invoice, and print the invoice PDF."]
+  ];
+  document.querySelector("#onboarding-list").innerHTML = items.map(([title, done, detail]) => `
+    <label class="onboarding-item ${done ? "done" : ""}">
+      <input type="checkbox" ${done ? "checked" : ""} disabled>
+      <span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(detail)}</small></span>
+    </label>
+  `).join("");
+  const form = document.querySelector("#onboarding-form");
+  if (form) {
+    form.serviceArea.value = data.serviceArea || "";
+    form.businessPhone.value = data.businessPhone || "";
+    form.workHours.value = data.workHours || "";
+    form.paymentTerms.value = data.paymentTerms || "Due 7 days after invoice";
+    form.messageTone.value = data.messageTone || "Professional";
+  }
+}
+
 function renderActions() {
   const actions = [
     ...state.leads.filter((lead) => lead.status === "New").map((lead) => ({
@@ -360,6 +405,7 @@ function renderJobs() {
             <strong>${escapeHtml(job.service)}</strong>
             <p>${escapeHtml(lead.name)} - ${escapeHtml(lead.suburb || "")}<br>${escapeHtml(job.crew || "Unassigned")} - ${escapeHtml(job.day || "Mon")}</p>
             <div class="card-actions">
+              <button class="mini-btn" data-view-job="${job.id}">Timeline</button>
               ${job.status === "Scheduled" ? `<button class="mini-btn" data-start-job="${job.id}">Start</button>` : ""}
               ${job.status === "In progress" ? `<button class="mini-btn" data-complete-job="${job.id}">Complete</button>` : ""}
               ${job.status === "Complete" ? `<button class="mini-btn" data-invoice-job="${job.id}">Invoice</button>` : ""}
@@ -407,8 +453,12 @@ function renderCrew() {
       </div>
       <h3>${escapeHtml(job.service)}</h3>
       <p>${escapeHtml(leadById(job.lead_id).name)} - ${escapeHtml(leadById(job.lead_id).suburb || "")}</p>
+      ${metaForJob(job.id).note ? `<p class="crew-note">${escapeHtml(metaForJob(job.id).note)}</p>` : ""}
       <div class="crew-checklist">
         ${(job.checklist || []).map((item) => `<label><input type="checkbox"> <span>${escapeHtml(item)}</span></label>`).join("")}
+      </div>
+      <div class="proof-list">
+        ${metaForJob(job.id).proof.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
       </div>
       <div class="card-actions">
         ${job.status === "Scheduled" ? `<button class="primary-btn" data-start-job="${job.id}">Start route</button>` : ""}
@@ -462,6 +512,7 @@ function renderInvoices() {
       <td><span class="pill ${invoice.status === "Paid" ? "success-pill" : invoice.status === "Overdue" ? "danger-pill" : ""}">${escapeHtml(invoice.status)}</span></td>
       <td class="row-actions">
         <button class="mini-btn" data-email-invoice="${invoice.id}">Send</button>
+        <button class="mini-btn" data-print-invoice="${invoice.id}">PDF</button>
         ${invoice.status !== "Paid" ? `<button class="mini-btn" data-remind-invoice="${invoice.id}">Remind</button><button class="mini-btn" data-pay-invoice="${invoice.id}">Mark paid</button>` : ""}
       </td>
     </tr>
@@ -580,6 +631,7 @@ function parseContracts(value) {
 function renderAll() {
   renderCompany();
   renderPlan();
+  renderOnboarding();
   renderMetrics();
   renderActions();
   renderLeads();
@@ -613,6 +665,7 @@ function switchView(view) {
   document.querySelector(`#${view}-view`).classList.add("active");
   document.querySelector("#view-title").textContent = {
     dashboard: "Operations cockpit",
+    onboarding: "Onboarding",
     leads: "Lead pipeline",
     quotes: "Quote builder",
     jobs: "Job board",
@@ -903,6 +956,58 @@ document.querySelectorAll("[data-action='new-lead']").forEach((button) => {
 
 document.querySelector("[data-close-lead]").addEventListener("click", () => document.querySelector("#lead-modal").close());
 document.querySelector("[data-close-schedule]").addEventListener("click", () => document.querySelector("#schedule-modal").close());
+document.querySelector("[data-close-job]").addEventListener("click", () => document.querySelector("#job-modal").close());
+
+document.querySelector("#onboarding-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const onboarding = Object.fromEntries(new FormData(event.currentTarget));
+    const result = await workspaceAction({ action: "saveWorkspaceSettings", onboarding });
+    state.automations = result.settings;
+    renderAll();
+    showToast("Onboarding saved.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.querySelector("#copy-onboarding-summary").addEventListener("click", async () => {
+  const data = onboardingData();
+  const summary = [
+    `Company: ${company?.name || ""}`,
+    `Plan: ${currentPlan()}`,
+    `Service area: ${data.serviceArea || ""}`,
+    `Phone: ${data.businessPhone || ""}`,
+    `Work hours: ${data.workHours || ""}`,
+    `Payment terms: ${data.paymentTerms || ""}`,
+    `Booking link: ${company?.id ? `${window.location.origin}/b?c=${company.id}` : ""}`
+  ].join("\n");
+  await navigator.clipboard.writeText(summary);
+  showToast("Onboarding summary copied.");
+});
+
+document.querySelector("#job-detail-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const form = event.currentTarget;
+    const jobId = form.jobId.value;
+    const nextMeta = {
+      ...jobMeta(),
+      [jobId]: {
+        note: form.note.value.trim(),
+        proof: form.proof.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
+        updatedAt: new Date().toISOString()
+      }
+    };
+    const result = await workspaceAction({ action: "saveWorkspaceSettings", jobMeta: nextMeta });
+    state.automations = result.settings;
+    document.querySelector("#job-modal").close();
+    renderAll();
+    showToast("Job timeline saved.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
 
 document.querySelector("#lead-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -942,6 +1047,77 @@ document.querySelector("#schedule-form").addEventListener("submit", async (event
   }
 });
 
+function timelineForJob(job) {
+  const lead = leadById(job.lead_id);
+  const quote = state.quotes.find((item) => item.id === job.quote_id);
+  const invoice = state.invoices.find((item) => item.lead_id === job.lead_id && Number(item.amount) === Number(job.amount || quote?.amount || 0));
+  return [
+    ["Lead captured", `${lead.name} requested ${lead.service || job.service}.`],
+    ["Quote created", quote ? `${money(quote.amount)} - ${quote.status}` : "No quote linked."],
+    ["Appointment proposed", `${job.day || "TBC"} - ${job.crew || "Unassigned"}`],
+    ["Job status", job.status || "Scheduled"],
+    ["Proof", metaForJob(job.id).proof.length ? `${metaForJob(job.id).proof.length} proof items saved.` : "No proof items yet."],
+    ["Invoice", invoice ? `${money(invoice.amount)} - ${invoice.status}` : "Invoice not generated yet."]
+  ];
+}
+
+function openJobDetail(jobId) {
+  const job = state.jobs.find((item) => item.id === jobId);
+  if (!job) return;
+  const meta = metaForJob(job.id);
+  const form = document.querySelector("#job-detail-form");
+  form.jobId.value = job.id;
+  form.note.value = meta.note || "";
+  form.proof.value = (meta.proof || []).join("\n");
+  document.querySelector("#job-detail-title").textContent = `${job.service} - ${leadById(job.lead_id).name}`;
+  document.querySelector("#job-timeline").innerHTML = timelineForJob(job).map(([title, detail]) => `
+    <article class="timeline-item">
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(detail)}</p>
+    </article>
+  `).join("");
+  document.querySelector("#job-modal").showModal();
+}
+
+function invoiceHtml(invoice) {
+  const lead = leadById(invoice.lead_id);
+  const terms = onboardingData().paymentTerms || "Due 7 days after invoice";
+  return `<!doctype html>
+    <html><head><title>Invoice ${String(invoice.id).slice(0, 8)}</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:40px;color:#17201b}
+      .top{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #17201b;padding-bottom:24px}
+      h1{font-size:44px;margin:0}.muted{color:#647067}.total{font-size:34px;font-weight:800}
+      table{width:100%;border-collapse:collapse;margin-top:34px}td,th{padding:14px;border-bottom:1px solid #ddd;text-align:left}
+      .foot{margin-top:36px;padding:18px;background:#f5f2ea;border-radius:12px}
+      @media print{button{display:none}}
+    </style></head><body>
+      <button onclick="window.print()">Print / Save PDF</button>
+      <section class="top">
+        <div><h1>Invoice</h1><p class="muted">${escapeHtml(company?.name || "TerrainDesk customer")}</p><p>ABN: ${escapeHtml(company?.abn || "")}</p></div>
+        <div><strong>#${escapeHtml(String(invoice.id).slice(0, 8))}</strong><p>Due ${escapeHtml(invoice.due || "")}</p><p>Status: ${escapeHtml(invoice.status)}</p></div>
+      </section>
+      <p><strong>Bill to:</strong><br>${escapeHtml(lead.name)}<br>${escapeHtml(lead.email || "")}<br>${escapeHtml(lead.suburb || "")}</p>
+      <table><thead><tr><th>Description</th><th>Qty</th><th>Amount</th></tr></thead><tbody>
+        <tr><td>Landscaping services</td><td>1</td><td>${escapeHtml(money(invoice.amount))}</td></tr>
+      </tbody></table>
+      <p class="total">Total ${escapeHtml(money(invoice.amount))}</p>
+      <div class="foot"><strong>Terms</strong><p>${escapeHtml(terms)}</p></div>
+    </body></html>`;
+}
+
+function printInvoice(invoiceId) {
+  const invoice = state.invoices.find((item) => item.id === invoiceId);
+  if (!invoice) return;
+  const win = window.open("", "_blank", "noopener,noreferrer");
+  if (!win) {
+    showToast("Popup blocked. Allow popups to print invoices.");
+    return;
+  }
+  win.document.write(invoiceHtml(invoice));
+  win.document.close();
+}
+
 document.addEventListener("click", async (event) => {
   const target = event.target.closest("button");
   if (!target || !profile) return;
@@ -979,6 +1155,10 @@ document.addEventListener("click", async (event) => {
       document.querySelector("#schedule-modal").showModal();
     }
 
+    if (target.dataset.viewJob) {
+      openJobDetail(target.dataset.viewJob);
+    }
+
     if (target.dataset.startJob) {
       await workspaceAction({ action: "updateJob", jobId: target.dataset.startJob, status: "In progress" });
       await refresh();
@@ -1007,6 +1187,10 @@ document.addEventListener("click", async (event) => {
       await workspaceAction({ action: "updateInvoice", invoiceId: target.dataset.payInvoice, status: "Paid" });
       await refresh();
       showToast("Invoice marked paid.");
+    }
+
+    if (target.dataset.printInvoice) {
+      printInvoice(target.dataset.printInvoice);
     }
 
     if (target.dataset.emailQuote) {

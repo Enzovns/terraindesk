@@ -479,6 +479,9 @@ async function handleWorkspaceAction(req, res) {
     for (const key of ["materials", "contracts", "depots", "permissions"]) {
       if (Array.isArray(body[key])) allowed[key] = body[key];
     }
+    for (const key of ["onboarding", "jobMeta"]) {
+      if (body[key] && typeof body[key] === "object" && !Array.isArray(body[key])) allowed[key] = body[key];
+    }
     await supabaseFetch("/rest/v1/automation_settings", {
       method: "POST",
       headers: { prefer: "resolution=merge-duplicates,return=representation" },

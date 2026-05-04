@@ -80,6 +80,16 @@
     </section>
 
     <section class="view" id="admin-onboarding-view">
+      <section class="panel">
+        <h2>Paid customer handoff checklist</h2>
+        <div class="onboarding-list">
+          <label class="onboarding-item done"><input type="checkbox" checked disabled><span><strong>Payment confirmed</strong><small>Stripe webhook creates or updates the company and subscription status.</small></span></label>
+          <label class="onboarding-item done"><input type="checkbox" checked disabled><span><strong>Workspace link sent</strong><small>Use Send link if the customer says they did not receive access.</small></span></label>
+          <label class="onboarding-item"><input type="checkbox" disabled><span><strong>Customer completes Onboarding tab</strong><small>They add service area, phone, work hours and payment terms.</small></span></label>
+          <label class="onboarding-item"><input type="checkbox" disabled><span><strong>First workflow test</strong><small>Lead, quote, quote acceptance, job timeline, invoice PDF.</small></span></label>
+          <label class="onboarding-item"><input type="checkbox" disabled><span><strong>Mark active</strong><small>Only after workspace access and first workflow test are confirmed.</small></span></label>
+        </div>
+      </section>
       <div class="kanban" id="onboarding-board"></div>
     </section>
 

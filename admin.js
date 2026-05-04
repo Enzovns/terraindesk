@@ -97,7 +97,7 @@ function renderFounderQueue() {
     const email = owner?.email || "";
     return `
       <div class="action-item">
-        <div><strong>${escapeHtml(company.name)}</strong><p>${escapeHtml(stageFor(company))} · ${escapeHtml(company.plan || "No plan")} · ${escapeHtml(email || "No owner yet")}</p></div>
+        <div><strong>${escapeHtml(company.name)}</strong><p>${escapeHtml(stageFor(company))} - ${escapeHtml(company.plan || "No plan")} - ${escapeHtml(email || "No owner yet")}</p></div>
         <button class="mini-btn" data-send-link="${escapeHtml(email)}" ${email ? "" : "disabled"}>Send link</button>
       </div>
     `;
@@ -147,7 +147,7 @@ function renderOnboarding() {
 function renderRevenue() {
   document.querySelector("#revenue-list").innerHTML = state.companies.length ? state.companies.map((company) => `
     <div class="action-item">
-      <div><strong>${escapeHtml(company.name)}</strong><p>${escapeHtml(company.plan || "No plan")} subscription · ${escapeHtml(statusFor(company))}</p></div>
+      <div><strong>${escapeHtml(company.name)}</strong><p>${escapeHtml(company.plan || "No plan")} subscription - ${escapeHtml(statusFor(company))}</p></div>
       <strong>${money(planPrices[company.plan])}</strong>
     </div>
   `).join("") : `<p class="empty-state">No subscription revenue yet.</p>`;

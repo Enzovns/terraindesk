@@ -41,6 +41,7 @@
     </a>
     <nav class="app-nav" aria-label="Workspace navigation">
       <button class="active" data-view="dashboard">Dashboard</button>
+      <button data-view="onboarding">Onboarding</button>
       <button data-view="leads">Leads</button>
       <button data-view="quotes">Quotes</button>
       <button data-view="jobs">Jobs</button>
@@ -94,6 +95,31 @@
             <p>Wind rising after 14:00. Move irrigation testing earlier.</p>
           </div>
         </section>
+      </div>
+    </section>
+
+    <section class="view" id="onboarding-view">
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">First customer setup</p>
+          <h2>Onboarding</h2>
+        </div>
+        <button class="ghost-btn" id="copy-onboarding-summary">Copy setup summary</button>
+      </div>
+      <div class="onboarding-grid">
+        <section class="panel">
+          <h2>Launch checklist</h2>
+          <div class="onboarding-list" id="onboarding-list"></div>
+        </section>
+        <form class="panel settings-form" id="onboarding-form">
+          <h2>Customer profile</h2>
+          <label>Main service area <input name="serviceArea" placeholder="Perth metro, Fremantle, Cottesloe"></label>
+          <label>Business phone <input name="businessPhone" placeholder="+61 ..."></label>
+          <label>Default work hours <input name="workHours" placeholder="Mon-Fri, 7:00-16:00"></label>
+          <label>Payment terms <input name="paymentTerms" placeholder="Due 7 days after invoice"></label>
+          <label>Client message tone <select name="messageTone"><option>Professional</option><option>Friendly</option><option>Premium</option><option>Direct</option></select></label>
+          <button class="primary-btn" type="submit">Save onboarding</button>
+        </form>
       </div>
     </section>
 
@@ -233,7 +259,7 @@
       <div class="table-panel">
         <table>
           <thead><tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
-          <tbody id="invoices-table"></tbody>
+      <tbody id="invoices-table"></tbody>
         </table>
       </div>
     </section>
@@ -369,6 +395,26 @@
       </label>
       <label>Employees <div class="choice-list" id="schedule-employees"></div></label>
       <button class="primary-btn" type="submit">Schedule job</button>
+    </form>
+  </dialog>
+
+  <dialog id="job-modal" class="app-dialog wide-dialog">
+    <form id="job-detail-form" method="dialog" class="dialog-card">
+      <button type="button" class="modal-close" data-close-job aria-label="Close">&times;</button>
+      <input type="hidden" name="jobId">
+      <h2 id="job-detail-title">Job timeline</h2>
+      <div class="job-detail-grid">
+        <section>
+          <h3>Timeline</h3>
+          <div class="timeline-list" id="job-timeline"></div>
+        </section>
+        <section class="settings-form">
+          <h3>Notes and proof</h3>
+          <label>Internal note <textarea name="note" placeholder="Access, risk, client preference, materials used..."></textarea></label>
+          <label>Proof items, one per line <textarea name="proof" placeholder="Before photos taken&#10;Irrigation tested&#10;Client sign-off received"></textarea></label>
+          <button class="primary-btn" type="submit">Save job notes</button>
+        </section>
+      </div>
     </form>
   </dialog>
 
