@@ -184,6 +184,37 @@ async function handleConfig(req, res) {
   return sendJson(res, 200, { ok: true, supabaseUrl, supabaseAnonKey });
 }
 
+async function handleIntegrationStatus(req, res) {
+  if (req.method !== "GET") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
+  return sendJson(res, 200, {
+    ok: true,
+    xeroReady: Boolean(process.env.XERO_CLIENT_ID),
+    smsReady: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER),
+    mapsReady: true
+  });
+}
+
+async function handleXeroConnect(req, res) {
+  if (req.method !== "GET") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
+  const clientId = process.env.XERO_CLIENT_ID;
+  if (!clientId) return sendJson(res, 422, { ok: false, error: "Missing XERO_CLIENT_ID. CSV export is available until OAuth is configured." });
+  const origin = getOrigin(req);
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: clientId,
+    redirect_uri: process.env.XERO_REDIRECT_URI || `${origin}/api/xero-callback`,
+    scope: "openid profile email accounting.transactions accounting.contacts offline_access",
+    state: "terraindesk"
+  });
+  return sendJson(res, 200, { ok: true, url: `https://login.xero.com/identity/connect/authorize?${params}` });
+}
+
+async function handleXeroCallback(req, res) {
+  res.statusCode = 200;
+  res.setHeader("content-type", "text/html; charset=utf-8");
+  res.end("<h1>Xero connection received</h1><p>Return to TerrainDesk. Token storage can now be enabled for this workspace.</p>");
+}
+
 async function handleDemoRequest(req, res) {
   if (req.method !== "POST") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
   const body = await readJson(req);
@@ -448,12 +479,13 @@ async function handleWorkspaceAction(req, res) {
     const existing = await supabaseFetch(`/rest/v1/automation_settings?company_id=eq.${encodeURIComponent(profile.company_id)}&select=*`);
     const current = existing[0]?.settings || {};
     const employees = String(body.employees || "").split(/\r?\n|,/).map((name) => name.trim()).filter(Boolean);
+    const teamMembers = Array.isArray(body.teamMembers) ? body.teamMembers : current.teamMembers || [];
     await supabaseFetch("/rest/v1/automation_settings", {
       method: "POST",
       headers: { prefer: "resolution=merge-duplicates,return=representation" },
-      body: JSON.stringify({ company_id: profile.company_id, settings: { ...current, employees } })
+      body: JSON.stringify({ company_id: profile.company_id, settings: { ...current, employees, teamMembers } })
     });
-    return sendJson(res, 200, { ok: true, employees });
+    return sendJson(res, 200, { ok: true, employees, teamMembers });
   }
   if (body.action === "saveServiceTemplates") {
     const existing = await supabaseFetch(`/rest/v1/automation_settings?company_id=eq.${encodeURIComponent(profile.company_id)}&select=*`);
@@ -488,6 +520,45 @@ async function handleWorkspaceAction(req, res) {
       body: JSON.stringify({ company_id: profile.company_id, settings: { ...current, ...allowed } })
     });
     return sendJson(res, 200, { ok: true, settings: { ...current, ...allowed } });
+  }
+  if (body.action === "generateContractJobs") {
+    const existing = await supabaseFetch(`/rest/v1/automation_settings?company_id=eq.${encodeURIComponent(profile.company_id)}&select=*`);
+    const contracts = existing[0]?.settings?.contracts || [];
+    const created = [];
+    for (const contract of contracts) {
+      const client = String(contract.client || "").trim();
+      if (!client) continue;
+      let lead = (await supabaseFetch(`/rest/v1/leads?company_id=eq.${encodeURIComponent(profile.company_id)}&name=eq.${encodeURIComponent(client)}&select=*`))[0];
+      if (!lead) {
+        lead = (await supabaseFetch("/rest/v1/leads", {
+          method: "POST",
+          body: JSON.stringify({
+            company_id: profile.company_id,
+            name: client,
+            email: "",
+            suburb: "",
+            service: contract.service || "Recurring maintenance",
+            urgency: contract.frequency || "Recurring",
+            status: "Contract"
+          })
+        }))[0];
+      }
+      const job = (await supabaseFetch("/rest/v1/jobs", {
+        method: "POST",
+        body: JSON.stringify({
+          company_id: profile.company_id,
+          lead_id: lead.id,
+          service: contract.service || "Recurring maintenance",
+          amount: Number(contract.amount || 0),
+          crew: body.crew || "Unassigned",
+          day: contract.next || "Mon",
+          status: "Scheduled",
+          checklist: ["Confirm access", "Complete recurring scope", "Before photos", "Client sign-off"]
+        })
+      }))[0];
+      created.push(job);
+    }
+    return sendJson(res, 200, { ok: true, jobs: created });
   }
   if (body.action === "updateJob") {
     const job = (await supabaseFetch(`/rest/v1/jobs?id=eq.${encodeURIComponent(body.jobId)}&company_id=eq.${encodeURIComponent(profile.company_id)}`, {
@@ -562,14 +633,103 @@ async function handleCustomerMessage(req, res) {
   if (!lead?.email) return sendJson(res, 422, { ok: false, error: "This client does not have an email address." });
   const subject = body.type === "quote" ? `${company.name || "TerrainDesk"} quote - ${body.service}` : body.type === "reminder" ? `Reminder from ${company.name || "TerrainDesk"}` : `${company.name || "TerrainDesk"} invoice - ${money(body.amount)}`;
   const quoteLink = `${getOrigin(req)}/quote.html?quote=${encodeURIComponent(body.quoteId || "")}`;
+  const portalLink = `${getOrigin(req)}/portal.html?quote=${encodeURIComponent(body.quoteId || "")}`;
   const proposedCopy = body.day ? ` The proposed appointment is ${escapeHtml(body.day)}.` : "";
   const html = body.type === "quote"
-    ? `<h1>Your landscaping quote</h1><p>Hi ${escapeHtml(lead.name)}, your quote for ${escapeHtml(body.service)} is <strong>${escapeHtml(money(body.amount))}</strong> inc. GST.${proposedCopy}</p><p><a href="${escapeHtml(quoteLink)}">Review, accept or request changes</a></p>`
+    ? `<h1>Your landscaping quote</h1><p>Hi ${escapeHtml(lead.name)}, your quote for ${escapeHtml(body.service)} is <strong>${escapeHtml(money(body.amount))}</strong> inc. GST.${proposedCopy}</p><p><a href="${escapeHtml(quoteLink)}">Review, accept or request changes</a></p><p><a href="${escapeHtml(portalLink)}">Open your client portal</a></p>`
     : body.type === "reminder"
       ? `<h1>Quick reminder</h1><p>Hi ${escapeHtml(lead.name)}, friendly reminder about your outstanding invoice for <strong>${escapeHtml(money(body.amount))}</strong>.</p>`
       : `<h1>Your invoice</h1><p>Hi ${escapeHtml(lead.name)}, your invoice is <strong>${escapeHtml(money(body.amount))}</strong>. Due ${escapeHtml(body.due || "soon")}.</p>`;
   const result = await sendResendEmail({ to: lead.email, replyTo: profile.email, subject, html, text: subject });
   return sendJson(res, 200, { ok: true, id: result.id });
+}
+
+async function handleCustomerSms(req, res) {
+  if (req.method !== "POST") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
+  const { profile } = await getAuthedProfile(req);
+  const body = await readJson(req);
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_FROM_NUMBER;
+  if (!sid || !token || !from) return sendJson(res, 422, { ok: false, error: "Twilio is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER." });
+  const lead = (await supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(body.leadId)}&company_id=eq.${encodeURIComponent(profile.company_id)}&select=*`))[0];
+  if (!lead?.phone) return sendJson(res, 422, { ok: false, error: "This client does not have a phone number." });
+  const params = new URLSearchParams({ From: from, To: lead.phone, Body: body.message || "Update from your landscaping team." });
+  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: "POST",
+    headers: {
+      authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}`,
+      "content-type": "application/x-www-form-urlencoded"
+    },
+    body: params
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) return sendJson(res, response.status, { ok: false, error: result.message || "SMS failed.", details: result });
+  return sendJson(res, 200, { ok: true, sid: result.sid });
+}
+
+async function handlePublicPortal(req, res) {
+  const url = new URL(req.url, `https://${req.headers.host || "localhost"}`);
+  const body = req.method === "POST" ? await readJson(req) : {};
+  const quoteId = url.searchParams.get("quote") || body.quoteId || "";
+  if (!quoteId) return sendJson(res, 422, { ok: false, error: "quote is required." });
+
+  const quote = (await supabaseFetch(`/rest/v1/quotes?id=eq.${encodeURIComponent(quoteId)}&select=*`))[0];
+  if (!quote) return sendJson(res, 404, { ok: false, error: "Quote not found." });
+  const [lead, company, quotes, jobs, invoices, automationRows] = await Promise.all([
+    supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(quote.lead_id)}&select=*`),
+    supabaseFetch(`/rest/v1/companies?id=eq.${encodeURIComponent(quote.company_id)}&select=*`),
+    supabaseFetch(`/rest/v1/quotes?lead_id=eq.${encodeURIComponent(quote.lead_id)}&company_id=eq.${encodeURIComponent(quote.company_id)}&select=*&order=created_at.desc`),
+    supabaseFetch(`/rest/v1/jobs?lead_id=eq.${encodeURIComponent(quote.lead_id)}&company_id=eq.${encodeURIComponent(quote.company_id)}&select=*&order=created_at.desc`),
+    supabaseFetch(`/rest/v1/invoices?lead_id=eq.${encodeURIComponent(quote.lead_id)}&company_id=eq.${encodeURIComponent(quote.company_id)}&select=*&order=created_at.desc`),
+    supabaseFetch(`/rest/v1/automation_settings?company_id=eq.${encodeURIComponent(quote.company_id)}&select=*`)
+  ]);
+  const portal = { quote, lead: lead[0] || {}, company: company[0] || {}, quotes, jobs, invoices, settings: automationRows[0]?.settings || {} };
+
+  if (req.method === "GET") return sendJson(res, 200, { ok: true, ...portal });
+  if (req.method !== "POST") return sendJson(res, 405, { ok: false, error: "Method not allowed." });
+
+  if (body.action === "requestWork") {
+    const newLead = (await supabaseFetch("/rest/v1/leads", {
+      method: "POST",
+      body: JSON.stringify({
+        company_id: quote.company_id,
+        name: portal.lead.name,
+        email: portal.lead.email,
+        phone: portal.lead.phone || "",
+        suburb: portal.lead.suburb || "",
+        service: body.service || "Additional landscaping work",
+        urgency: body.urgency || "Flexible",
+        status: "New"
+      })
+    }))[0];
+    const owner = (await supabaseFetch(`/rest/v1/profiles?company_id=eq.${encodeURIComponent(quote.company_id)}&role=eq.owner&select=email`))[0];
+    if (owner?.email) {
+      await sendResendEmail({
+        to: owner.email,
+        replyTo: portal.lead.email,
+        subject: `New client portal request - ${portal.lead.name || "Customer"}`,
+        html: `<h1>New client portal request</h1><p><strong>Client:</strong> ${escapeHtml(portal.lead.name || "")}</p><p><strong>Service:</strong> ${escapeHtml(body.service || "")}</p><p><strong>Urgency:</strong> ${escapeHtml(body.urgency || "")}</p><p>${escapeHtml(body.note || "")}</p>`,
+        text: `New portal request from ${portal.lead.name || "customer"}: ${body.service || ""}`
+      });
+    }
+    return sendJson(res, 200, { ok: true, lead: newLead });
+  }
+
+  if (body.action === "message") {
+    const owner = (await supabaseFetch(`/rest/v1/profiles?company_id=eq.${encodeURIComponent(quote.company_id)}&role=eq.owner&select=email`))[0];
+    if (!owner?.email) return sendJson(res, 422, { ok: false, error: "No owner email found." });
+    const result = await sendResendEmail({
+      to: owner.email,
+      replyTo: portal.lead.email,
+      subject: `Client portal message - ${portal.lead.name || "Customer"}`,
+      html: `<h1>Client portal message</h1><p><strong>Client:</strong> ${escapeHtml(portal.lead.name || "")}</p><p>${escapeHtml(body.message || "")}</p>`,
+      text: body.message || "Client portal message"
+    });
+    return sendJson(res, 200, { ok: true, id: result.id });
+  }
+
+  return sendJson(res, 422, { ok: false, error: "Unknown portal action." });
 }
 
 async function handlePublicQuote(req, res) {
@@ -622,6 +782,9 @@ async function handlePublicQuote(req, res) {
 
 const routes = {
   "config": handleConfig,
+  "integration-status": handleIntegrationStatus,
+  "xero-connect": handleXeroConnect,
+  "xero-callback": handleXeroCallback,
   "demo-request": handleDemoRequest,
   "create-checkout-session": handleCheckout,
   "client-intake": handleClientIntake,
@@ -636,6 +799,8 @@ const routes = {
   "workspace-action": handleWorkspaceAction,
   "public-lead": handlePublicLead,
   "customer-message": handleCustomerMessage,
+  "customer-sms": handleCustomerSms,
+  "public-portal": handlePublicPortal,
   "public-quote": handlePublicQuote
 };
 

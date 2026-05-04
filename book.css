@@ -148,9 +148,66 @@
   min-width: 150px;
 }
 
+.portal-shell {
+  width: min(1040px, 100%);
+}
+
+.portal-grid,
+.portal-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.portal-actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+.portal-card {
+  min-height: 210px;
+  padding: 18px;
+  border: 1px solid rgba(23, 32, 27, 0.13);
+  border-radius: 18px;
+  background: #f8f5ed;
+}
+
+.portal-card > span {
+  display: block;
+  margin-bottom: 12px;
+  color: #647067;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.portal-row {
+  display: grid;
+  gap: 5px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(23, 32, 27, 0.1);
+}
+
+.portal-row:last-child {
+  border-bottom: 0;
+}
+
+.portal-row span,
+.portal-row small {
+  color: #647067;
+}
+
+.portal-row a {
+  color: #274633;
+  font-weight: 800;
+}
+
 @media (max-width: 700px) {
   .booking-form,
-  .quote-detail-grid {
+  .quote-detail-grid,
+  .portal-grid,
+  .portal-actions {
     grid-template-columns: 1fr;
   }
 }

@@ -11,6 +11,7 @@ let state = {
   invoices: [],
   automations: {}
 };
+let integrations = {};
 
 const automations = [
   ["quoteFollowUp", "Quote follow-up after 48 hours", "Send a calm reminder when a quote has not been accepted."],
@@ -72,8 +73,15 @@ function leadById(id) {
 }
 
 function employeesList() {
+  const team = teamMembersList();
+  if (team.length) return team.map((member) => member.name);
   const employees = state.automations.employees;
   return Array.isArray(employees) && employees.length ? employees : ["Owner", "North employee", "South employee"];
+}
+
+function teamMembersList() {
+  const team = state.automations.teamMembers;
+  return Array.isArray(team) ? team.filter((member) => member.name) : [];
 }
 
 function defaultServiceTemplates() {
@@ -143,7 +151,7 @@ function jobMeta() {
 }
 
 function metaForJob(jobId) {
-  return jobMeta()[jobId] || { note: "", proof: [] };
+  return jobMeta()[jobId] || { note: "", proof: [], files: [], time: {} };
 }
 
 async function getConfig() {
@@ -164,6 +172,20 @@ async function sendCustomerMessage(payload) {
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Message could not be sent.");
+  return result;
+}
+
+async function sendCustomerSms(payload) {
+  const response = await fetch("/api/customer-sms", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${session.access_token}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "SMS could not be sent.");
   return result;
 }
 
@@ -207,6 +229,7 @@ async function bootWorkspace() {
   setLocked(false);
   await ensureProfile();
   await loadWorkspace();
+  await loadIntegrationStatus();
   renderAll();
   applyRoleAccess();
 }
@@ -259,6 +282,11 @@ async function loadWorkspace() {
 async function refresh() {
   await loadWorkspace();
   renderAll();
+}
+
+async function loadIntegrationStatus() {
+  const response = await fetch("/api/integration-status");
+  integrations = response.ok ? await response.json() : {};
 }
 
 function renderMetrics() {
@@ -364,6 +392,7 @@ function renderLeads() {
       <td><span class="pill">${escapeHtml(lead.status || "New")}</span></td>
       <td class="row-actions">
         <button class="mini-btn" data-contact-lead="${lead.id}">Contacted</button>
+        <button class="mini-btn" data-sms-lead="${lead.id}" ${lead.phone ? "" : "disabled"}>SMS</button>
         <button class="mini-btn" data-build-quote="${lead.id}">Quote</button>
         <button class="mini-btn danger-action" data-delete-lead="${lead.id}">Delete</button>
       </td>
@@ -438,10 +467,23 @@ function renderRoutes() {
   document.querySelector("#routes-grid").innerHTML = grouped.map((group) => `
     <section class="route-day">
       <div class="route-head"><strong>${group.day}</strong><span>${group.jobs.length} jobs - ${group.jobs.length ? group.km : 0} km est.</span></div>
+      ${group.jobs.length ? `<button class="mini-btn" data-open-map="${group.day}">Open map</button>` : ""}
       ${featureLocked("Route optimization") ? `<p class="locked-note">Upgrade to Operations for route optimization.</p>` : ""}
       ${group.jobs.map((job, index) => `<article class="route-stop"><b>${index + 1}</b><div><strong>${escapeHtml(job.service)}</strong><p>${escapeHtml(leadById(job.lead_id).suburb || "")} - ${escapeHtml(job.crew || "Unassigned")}</p></div></article>`).join("") || `<p class="empty-state">No route planned.</p>`}
     </section>
   `).join("");
+}
+
+function routeMapUrl(day) {
+  const stops = state.jobs
+    .filter((job) => job.day === day && !["Complete", "Proposed", "Blocked"].includes(job.status))
+    .map((job) => leadById(job.lead_id).suburb)
+    .filter(Boolean);
+  const destination = stops.at(-1) || "Perth WA";
+  const waypoints = stops.slice(0, -1).join("|");
+  const params = new URLSearchParams({ api: "1", destination });
+  if (waypoints) params.set("waypoints", waypoints);
+  return `https://www.google.com/maps/dir/?${params}`;
 }
 
 function renderCrew() {
@@ -459,6 +501,11 @@ function renderCrew() {
       </div>
       <div class="proof-list">
         ${metaForJob(job.id).proof.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+      </div>
+      <div class="proof-file-grid">
+        ${(metaForJob(job.id).files || []).map((file) => file.dataUrl && file.type?.startsWith("image/")
+          ? `<img src="${escapeHtml(file.dataUrl)}" alt="${escapeHtml(file.name)}">`
+          : `<span>${escapeHtml(file.name)}</span>`).join("")}
       </div>
       <div class="card-actions">
         ${job.status === "Scheduled" ? `<button class="primary-btn" data-start-job="${job.id}">Start route</button>` : ""}
@@ -542,6 +589,13 @@ function renderPortal() {
   if (input) input.value = link;
 }
 
+function renderIntegrationStatus() {
+  const smsStatus = document.querySelector("#sms-status");
+  if (smsStatus) smsStatus.textContent = integrations.smsReady ? "Twilio active" : "Email fallback active";
+  const xeroButton = document.querySelector("#connect-xero");
+  if (xeroButton) xeroButton.textContent = integrations.xeroReady ? "Connect" : "Setup needed";
+}
+
 function renderAutomations() {
   document.querySelector("#automation-list").innerHTML = automations.map(([key, title, description]) => `
     <article class="automation-rule">
@@ -560,7 +614,11 @@ function renderCompany() {
     bookingInput.value = `${window.location.origin}/b?c=${company.id}`;
   }
   const employeesInput = document.querySelector("#employees-form [name='employees']");
-  if (employeesInput) employeesInput.value = employeesList().join("\n");
+  if (employeesInput) {
+    employeesInput.value = teamMembersList().length
+      ? teamMembersList().map((member) => `${member.name} | ${member.email || ""} | ${member.role || "employee"}`).join("\n")
+      : employeesList().join("\n");
+  }
   const templatesInput = document.querySelector("#templates-form [name='templates']");
   if (templatesInput) {
     templatesInput.value = serviceTemplates().map((item) => `${item.service} | ${item.hours} | ${item.rate} | ${item.materials} | ${item.markup}`).join("\n");
@@ -571,6 +629,7 @@ function renderCompany() {
   if (permissionsInput) permissionsInput.value = permissionsList().join("\n");
   renderEmployeeChoices();
   renderServiceTemplates();
+  renderTeamMembers();
 }
 
 function renderEmployeeChoices() {
@@ -596,6 +655,26 @@ function renderServiceTemplates() {
   const select = document.querySelector("#service-template");
   if (!select) return;
   select.innerHTML = `<option value="">Custom quote</option>${serviceTemplates().map((template, index) => `<option value="${index}">${escapeHtml(template.service)}</option>`).join("")}`;
+}
+
+function renderTeamMembers() {
+  const target = document.querySelector("#team-members");
+  if (!target) return;
+  const team = teamMembersList();
+  target.innerHTML = team.length ? team.map((member) => `
+    <div class="team-member">
+      <strong>${escapeHtml(member.name)}</strong>
+      <span>${escapeHtml(member.role || "employee")} ${member.email ? `- ${escapeHtml(member.email)}` : ""}</span>
+    </div>
+  `).join("") : `<p class="muted-copy">Add name | email | role to enable clean employee assignment and access planning.</p>`;
+}
+
+function parseTeamMembers(value) {
+  return String(value || "").split(/\r?\n/).map((line) => {
+    const [name, email, role] = line.split("|").map((part) => part.trim());
+    if (!name) return null;
+    return { name, email: email || "", role: (role || "employee").toLowerCase() };
+  }).filter(Boolean);
 }
 
 function parseTemplates(value) {
@@ -645,16 +724,19 @@ function renderAll() {
   renderInvoices();
   renderReports();
   renderPortal();
+  renderIntegrationStatus();
   renderAutomations();
 }
 
 function applyRoleAccess() {
+  if (profile?.role !== "owner") {
+    document.querySelector(".admin-link").hidden = true;
+  }
   if (profile?.role !== "crew") return;
   document.querySelectorAll(".app-nav button").forEach((button) => {
     const allowed = ["crew", "schedule"].includes(button.dataset.view);
     button.hidden = !allowed;
   });
-  document.querySelector(".admin-link").hidden = true;
   document.querySelector("[data-action='new-lead']").hidden = true;
   switchView("crew");
 }
@@ -755,8 +837,10 @@ document.querySelector("#employees-form").addEventListener("submit", async (even
   event.preventDefault();
   try {
     const payload = formPayload(event.currentTarget);
-    const result = await workspaceAction({ action: "saveEmployees", ...payload });
+    const teamMembers = parseTeamMembers(payload.employees);
+    const result = await workspaceAction({ action: "saveEmployees", ...payload, teamMembers, employees: teamMembers.length ? teamMembers.map((member) => member.name).join("\n") : payload.employees });
     state.automations.employees = result.employees;
+    state.automations.teamMembers = result.teamMembers;
     renderCompany();
     showToast("Employees saved.");
   } catch (error) {
@@ -798,6 +882,16 @@ document.querySelector("#contracts-form").addEventListener("submit", async (even
     state.automations = result.settings;
     renderAll();
     showToast("Contracts saved.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.querySelector("#generate-contract-jobs").addEventListener("click", async () => {
+  try {
+    const result = await workspaceAction({ action: "generateContractJobs" });
+    await refresh();
+    showToast(`${result.jobs.length} recurring jobs generated.`);
   } catch (error) {
     showToast(error.message);
   }
@@ -854,6 +948,17 @@ document.querySelector("#export-calendar").addEventListener("click", () => {
   }).join("\r\n");
   const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TerrainDesk//Schedule//EN\r\n${events}\r\nEND:VCALENDAR`;
   downloadText("terraindesk-schedule.ics", ics, "text/calendar");
+});
+
+document.querySelector("#connect-xero").addEventListener("click", async () => {
+  try {
+    const response = await fetch("/api/xero-connect");
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Xero connection is not ready.");
+    window.location.href = result.url;
+  } catch (error) {
+    showToast(error.message);
+  }
 });
 
 document.querySelector("#export-routes").addEventListener("click", () => {
@@ -986,16 +1091,33 @@ document.querySelector("#copy-onboarding-summary").addEventListener("click", asy
   showToast("Onboarding summary copied.");
 });
 
+function readProofFile(file) {
+  return new Promise((resolve, reject) => {
+    if (file.size > 750000) {
+      reject(new Error(`${file.name} is too large. Keep proof files under 750KB for this MVP.`));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve({ name: file.name, type: file.type, size: file.size, dataUrl: reader.result });
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+    reader.readAsDataURL(file);
+  });
+}
+
 document.querySelector("#job-detail-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     const form = event.currentTarget;
     const jobId = form.jobId.value;
+    const existing = metaForJob(jobId);
+    const uploaded = await Promise.all(Array.from(form.querySelector("[name='files']").files || []).map(readProofFile));
     const nextMeta = {
       ...jobMeta(),
       [jobId]: {
         note: form.note.value.trim(),
         proof: form.proof.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
+        files: [...(existing.files || []), ...uploaded].slice(-8),
+        time: existing.time || {},
         updatedAt: new Date().toISOString()
       }
     };
@@ -1051,14 +1173,33 @@ function timelineForJob(job) {
   const lead = leadById(job.lead_id);
   const quote = state.quotes.find((item) => item.id === job.quote_id);
   const invoice = state.invoices.find((item) => item.lead_id === job.lead_id && Number(item.amount) === Number(job.amount || quote?.amount || 0));
+  const time = metaForJob(job.id).time || {};
   return [
     ["Lead captured", `${lead.name} requested ${lead.service || job.service}.`],
     ["Quote created", quote ? `${money(quote.amount)} - ${quote.status}` : "No quote linked."],
     ["Appointment proposed", `${job.day || "TBC"} - ${job.crew || "Unassigned"}`],
     ["Job status", job.status || "Scheduled"],
+    ["Time tracking", time.startedAt ? `Started ${new Date(time.startedAt).toLocaleString()}${time.completedAt ? `, completed ${new Date(time.completedAt).toLocaleString()}` : ""}${time.totalMinutes ? `, ${time.totalMinutes} min total` : ""}` : "Not started yet."],
     ["Proof", metaForJob(job.id).proof.length ? `${metaForJob(job.id).proof.length} proof items saved.` : "No proof items yet."],
     ["Invoice", invoice ? `${money(invoice.amount)} - ${invoice.status}` : "Invoice not generated yet."]
   ];
+}
+
+async function updateJobStatus(jobId, status) {
+  await workspaceAction({ action: "updateJob", jobId, status });
+  const existing = metaForJob(jobId);
+  const time = { ...(existing.time || {}) };
+  const now = new Date().toISOString();
+  if (status === "In progress" && !time.startedAt) time.startedAt = now;
+  if (status === "Complete") {
+    if (!time.startedAt) time.startedAt = now;
+    time.completedAt = now;
+    time.totalMinutes = Math.max(1, Math.round((new Date(time.completedAt) - new Date(time.startedAt)) / 60000));
+  }
+  if (status === "Blocked") time.blockedAt = now;
+  const nextMeta = { ...jobMeta(), [jobId]: { ...existing, time, updatedAt: now } };
+  const result = await workspaceAction({ action: "saveWorkspaceSettings", jobMeta: nextMeta });
+  state.automations = result.settings;
 }
 
 function openJobDetail(jobId) {
@@ -1069,6 +1210,7 @@ function openJobDetail(jobId) {
   form.jobId.value = job.id;
   form.note.value = meta.note || "";
   form.proof.value = (meta.proof || []).join("\n");
+  form.querySelector("[name='files']").value = "";
   document.querySelector("#job-detail-title").textContent = `${job.service} - ${leadById(job.lead_id).name}`;
   document.querySelector("#job-timeline").innerHTML = timelineForJob(job).map(([title, detail]) => `
     <article class="timeline-item">
@@ -1076,6 +1218,9 @@ function openJobDetail(jobId) {
       <p>${escapeHtml(detail)}</p>
     </article>
   `).join("");
+  document.querySelector("#job-proof-files").innerHTML = (meta.files || []).map((file) => file.dataUrl && file.type?.startsWith("image/")
+    ? `<figure><img src="${escapeHtml(file.dataUrl)}" alt="${escapeHtml(file.name)}"><figcaption>${escapeHtml(file.name)}</figcaption></figure>`
+    : `<span>${escapeHtml(file.name)}</span>`).join("") || `<p class="empty-state">No files saved yet.</p>`;
   document.querySelector("#job-modal").showModal();
 }
 
@@ -1134,6 +1279,15 @@ document.addEventListener("click", async (event) => {
       showToast("Lead marked contacted.");
     }
 
+    if (target.dataset.smsLead) {
+      const lead = state.leads.find((item) => item.id === target.dataset.smsLead);
+      const message = window.prompt("SMS message", `Hi ${lead?.name || ""}, this is ${company?.name || "your landscaping team"}. We are following up on your request.`);
+      if (!message) return;
+      if (!window.confirm(`Send this SMS to ${lead?.phone}?`)) return;
+      await sendCustomerSms({ leadId: target.dataset.smsLead, message });
+      showToast("SMS sent.");
+    }
+
     if (target.dataset.deleteLead) {
       if (!window.confirm("Delete this lead and related quotes, jobs and invoices?")) return;
       await workspaceAction({ action: "deleteLead", leadId: target.dataset.deleteLead });
@@ -1159,20 +1313,24 @@ document.addEventListener("click", async (event) => {
       openJobDetail(target.dataset.viewJob);
     }
 
+    if (target.dataset.openMap) {
+      window.open(routeMapUrl(target.dataset.openMap), "_blank", "noopener,noreferrer");
+    }
+
     if (target.dataset.startJob) {
-      await workspaceAction({ action: "updateJob", jobId: target.dataset.startJob, status: "In progress" });
+      await updateJobStatus(target.dataset.startJob, "In progress");
       await refresh();
       showToast("Job started.");
     }
 
     if (target.dataset.blockJob) {
-      await workspaceAction({ action: "updateJob", jobId: target.dataset.blockJob, status: "Blocked" });
+      await updateJobStatus(target.dataset.blockJob, "Blocked");
       await refresh();
       showToast("Job blocked.");
     }
 
     if (target.dataset.completeJob) {
-      await workspaceAction({ action: "updateJob", jobId: target.dataset.completeJob, status: "Complete" });
+      await updateJobStatus(target.dataset.completeJob, "Complete");
       await refresh();
       showToast("Job completed. Ready to invoice.");
     }

@@ -669,6 +669,33 @@ textarea {
   margin: 12px 0;
 }
 
+.proof-file-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.proof-file-grid figure {
+  margin: 0;
+}
+
+.proof-file-grid img {
+  width: 100%;
+  aspect-ratio: 1.2;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.proof-file-grid figcaption,
+.proof-file-grid > span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
 .proof-list span {
   padding: 8px 10px;
   color: #fffefa;
@@ -771,6 +798,26 @@ textarea {
   justify-content: space-between;
   min-height: 58px;
   border-bottom: 1px solid var(--line);
+}
+
+.team-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.team-member {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(245, 242, 234, 0.72);
+}
+
+.team-member span {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .integration-row b { color: var(--success); }

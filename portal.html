@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Portal | TerrainDesk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="book.css">
+</head>
+<body class="booking-page">
+  <main class="booking-shell portal-shell">
+    <a class="brand" href="/" aria-label="TerrainDesk home">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17.5c6.8-.4 11-4.6 12.5-12.5 3.2 7.7.8 14.6-6.7 17.2C8.1 23.1 5.4 21 5 17.5Z"/><path d="M5.3 17.4C8.6 14.9 12 11.8 15.5 8"/></svg>
+      </span>
+      TerrainDesk
+    </a>
+    <p class="eyebrow" id="portal-company">Client portal</p>
+    <h1 id="portal-title">Loading your portal...</h1>
+    <p class="booking-copy" id="portal-copy">Quotes, appointments and invoices will appear here.</p>
+
+    <section class="portal-grid">
+      <article class="portal-card">
+        <span>Quotes</span>
+        <div id="portal-quotes"></div>
+      </article>
+      <article class="portal-card">
+        <span>Appointments</span>
+        <div id="portal-jobs"></div>
+      </article>
+      <article class="portal-card">
+        <span>Invoices</span>
+        <div id="portal-invoices"></div>
+      </article>
+    </section>
+
+    <section class="portal-actions">
+      <form id="portal-work-form" class="revision-form">
+        <h2>Request more work</h2>
+        <label>Service <input name="service" placeholder="Hedge trim, lawn mowing, irrigation repair" required></label>
+        <label>Urgency <select name="urgency"><option>This week</option><option>Next 2 weeks</option><option>Flexible</option></select></label>
+        <label>Note <textarea name="note" placeholder="Anything the landscaper should know?"></textarea></label>
+        <button class="primary-btn" type="submit">Send request</button>
+      </form>
+      <form id="portal-message-form" class="revision-form">
+        <h2>Message the office</h2>
+        <label>Message <textarea name="message" placeholder="Ask a question about a quote, appointment or invoice." required></textarea></label>
+        <button class="primary-btn" type="submit">Send message</button>
+      </form>
+    </section>
+    <p class="booking-status" id="portal-status"></p>
+  </main>
+  <script src="portal.js"></script>
+</body>
+</html>

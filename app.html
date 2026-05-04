@@ -237,6 +237,7 @@
           <p class="eyebrow">Recurring revenue</p>
           <h2>Contracts</h2>
         </div>
+        <button class="ghost-btn" id="generate-contract-jobs">Generate next visits</button>
       </div>
       <div class="tool-grid">
         <form class="panel settings-form" id="contracts-form">
@@ -324,9 +325,10 @@
         <section class="panel">
           <h2>Employees</h2>
           <form id="employees-form" class="settings-form">
-            <label>One employee per line <textarea name="employees" placeholder="Alex&#10;Jordan&#10;Sam"></textarea></label>
+            <label>Team members, one per line <textarea name="employees" placeholder="Alex | alex@company.com.au | owner&#10;Jordan | jordan@company.com.au | manager&#10;Sam | sam@company.com.au | employee"></textarea></label>
             <button class="primary-btn" type="submit">Save employees</button>
           </form>
+          <div class="team-list" id="team-members"></div>
         </section>
         <section class="panel">
           <h2>Service templates</h2>
@@ -348,12 +350,12 @@
           <h2>Integrations</h2>
           <div class="integration-row"><span>Stripe</span><b>Active</b></div>
           <div class="integration-row"><span>Resend</span><b>Active</b></div>
-          <div class="integration-row"><span>Xero</span><button class="mini-btn" id="export-xero">Export CSV</button></div>
+          <div class="integration-row"><span>Xero</span><div class="row-actions"><button class="mini-btn" id="connect-xero">Connect</button><button class="mini-btn" id="export-xero">Export CSV</button></div></div>
           <div class="integration-row"><span>QuickBooks</span><button class="mini-btn" id="export-quickbooks">Export CSV</button></div>
           <div class="integration-row"><span>Google Calendar</span><button class="mini-btn" id="export-calendar">Download ICS</button></div>
           <div class="integration-row"><span>Zapier</span><button class="mini-btn" id="export-zapier">Download JSON</button></div>
           <div class="integration-row"><span>Google Drive</span><button class="mini-btn" id="export-drive">Proof archive manifest</button></div>
-          <div class="integration-row"><span>SMS reminders</span><b>Email fallback active</b></div>
+          <div class="integration-row"><span>SMS reminders</span><b id="sms-status">Email fallback active</b></div>
         </section>
         <section class="panel">
           <h2>Public booking link</h2>
@@ -412,6 +414,8 @@
           <h3>Notes and proof</h3>
           <label>Internal note <textarea name="note" placeholder="Access, risk, client preference, materials used..."></textarea></label>
           <label>Proof items, one per line <textarea name="proof" placeholder="Before photos taken&#10;Irrigation tested&#10;Client sign-off received"></textarea></label>
+          <label>Photo / document proof <input name="files" type="file" accept="image/*,.pdf" multiple></label>
+          <div class="proof-file-grid" id="job-proof-files"></div>
           <button class="primary-btn" type="submit">Save job notes</button>
         </section>
       </div>
